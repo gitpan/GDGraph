@@ -5,7 +5,7 @@
 #	Name:
 #		GD::Graph::area.pm
 #
-# $Id: area.pm,v 1.3 1999/12/29 12:14:40 mgjv Exp $
+# $Id: area.pm,v 1.5 2000/01/27 11:13:32 mgjv Exp $
 #
 #==========================================================================
 
@@ -59,13 +59,16 @@ sub draw_data_set  # GD::Image, \@data, $ds
 	$g->polygon($poly, $brci);
 
 	# Draw the accent lines
-	for $i (1 .. ($s->{numpoints} - 1)) 
+	if (($s->{right} - $s->{left})/($s->{numpoints} + 1)>
+			$s->{accent_treshold})
 	{
-		next unless (defined $d->[$i]);
-
-		($x, $y) = $s->val_to_pixel($i + 1, $d->[$i], $ds);
-		$g->dashedLine( $x, $y, $x, $s->{zeropoint}, $brci );
-   }
+		for $i (1 .. ($s->{numpoints} - 1)) 
+		{
+			next unless (defined $d->[$i]);
+			($x, $y) = $s->val_to_pixel($i + 1, $d->[$i], $ds);
+			$g->dashedLine($x, $y, $x, $s->{zeropoint}, $brci);
+		}
+	}
 }
  
 1;

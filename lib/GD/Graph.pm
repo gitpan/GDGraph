@@ -18,7 +18,7 @@
 #		GD::Graph::pie
 #		GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.11 2000/01/09 12:43:58 mgjv Exp $
+# $Id: Graph.pm,v 1.14 2000/01/28 22:03:10 mgjv Exp $
 #
 #==========================================================================
 
@@ -36,11 +36,11 @@ use GD;
 use GD::Text::Align;
 use Carp;
 
-$GD::Graph::prog_rcs_rev = q{$Revision: 1.11 $};
+$GD::Graph::prog_rcs_rev = q{$Revision: 1.14 $};
 $GD::Graph::prog_version = 
 	($GD::Graph::prog_rcs_rev =~ /\s+(\d*\.\d*)/) ? $1 : "0.0";
 
-$GD::Graph::VERSION = '1.23';
+$GD::Graph::VERSION = '1.24';
 
 # Some tools and utils
 use GD::Graph::colour qw(:colours);
@@ -851,6 +851,14 @@ dataset. Note that this may have a weird effect if you are drawing more
 than one data set. If this is set to a value larger than 1 the border
 colour of the bars will cycle through the colours in C<borderclrs>.
 
+=item accent_treshold
+
+Not really a colour, but it does control a visual aspect: Accents on
+bars are only drawn when the width of a bar is larger than this number
+of pixels. Accents inside areas are only drawn when the horizontal
+distance between points is larger than this number.
+Default 4
+
 =back
 
 =head2 Options for graphs with axes.
@@ -1315,6 +1323,7 @@ Steve Bonds,
 Mike Bremford,
 Damon Brodie,
 brian d foy,
+Edwin Hildebrand,
 Ari Jolma,
 Honza Pazdziora,
 Scott Prahl,
