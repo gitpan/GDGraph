@@ -31,6 +31,7 @@ SAMPLES :=  \
     sample31 \
     sample41 sample42\
     sample51 sample52 sample53 sample54 sample55 sample56 \
+    sample57 \
     sample61 sample62 sample63 \
     sample71 \
     sample91 sample92 sample93 sample94
@@ -44,6 +45,10 @@ all: $(IMAGES)
 
 %.$(EXT) %-h.$(EXT): %.pl
 	$(PERL) $(OPTIONS) $<
+
+# EXPERIMENTAL, for internal use only. Don't try to run this
+html: make_index.pl Makefile
+	$(PERL) $(OPTIONS) make_index.pl $(EXT)
 
 # Requires ImageMagick to be installed
 logo.gif: logo.png

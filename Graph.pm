@@ -19,7 +19,7 @@
 #       GD::Graph::pie
 #       GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.47 2003/02/20 12:47:29 mgjv Exp $
+# $Id: Graph.pm,v 1.49 2003/03/06 23:10:25 mgjv Exp $
 #
 #==========================================================================
 
@@ -31,8 +31,8 @@
 
 package GD::Graph;
 
-($GD::Graph::prog_version) = '$Revision: 1.47 $' =~ /\s([\d.]+)/;
-$GD::Graph::VERSION = '1.39';
+($GD::Graph::prog_version) = '$Revision: 1.49 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.40';
 
 use strict;
 use GD;
@@ -90,7 +90,7 @@ my %Defaults = (
     valuesclr     => 'dblue',   # values printed above the points
     
     # data set colours
-    dclrs => [ qw(lred lgreen lblue lyellow lpurple cyan lorange)], 
+    dclrs => [qw(lred lgreen lblue lyellow lpurple cyan lorange)], 
 
     # number of pixels to use as text spacing
     text_space    => 4,
@@ -540,7 +540,8 @@ Create a graph, representing the data as areas under a line.
 Create a mixed type graph, any combination of the above. At the moment
 this is fairly limited. Some of the options that can be used with some
 of the individual graph types won't work very well. Multiple bar
-graphs in a mixed graph won't display very nicely.
+graphs in a mixed graph won't display very nicely, i.e. they cannot be
+put next to each other.
 
 =back
 
@@ -858,6 +859,7 @@ A colour can be C<undef>, in which case the data set will not be drawn.
 This can be useful for cumulative bar sets where you want certain data
 series (often the first one) not to show up, which can be used to
 emulate error bars (see examples 1-7 and 6-3 in the distribution).
+
 Default: [ qw(lred lgreen lblue lyellow lpurple cyan lorange) ] 
 
 =item borderclrs
@@ -1588,6 +1590,7 @@ Ari Jolma,
 Tim Meadowcroft,
 Honza Pazdziora,
 Scott Prahl,
+Ben Tilly,
 Vegard Vesterheim,
 Jeremy Wadsack.
 
