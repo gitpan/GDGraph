@@ -18,7 +18,13 @@ $my_graph->set(
 	y_max_value => 8,
 	y_tick_number => 8,
 	y_label_skip => 2,
-);
+	
+	# shadows
+	bar_spacing => 8,
+	shadow_depth => 4,
+	shadowclr => 'dred',
+) 
+or warn $my_graph->error;
 
 $my_graph->plot(\@data);
 save_chart($my_graph, 'sample11');

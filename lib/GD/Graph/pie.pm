@@ -5,13 +5,15 @@
 #	Name:
 #		GD::Graph::pie.pm
 #
-# $Id: pie.pm,v 1.4 1999/12/29 12:14:40 mgjv Exp $
+# $Id: pie.pm,v 1.7 2000/01/07 13:44:42 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::pie;
 
 use strict;
+
+use constant PI => 4 * atan2(1,1);
 
 use GD;
 use GD::Graph;
@@ -31,17 +33,39 @@ my %Defaults = (
 	# is being set in GD::Graph::pie::initialise
  
 	#   pie_height => _round(0.1*${'width'}),
+	pie_height 	=> undef,
  
 	# Do you want a 3D pie?
-	'3d'         => 1,
+	'3d'        => 1,
  
 	# The angle at which to start the first data set
 	# 0 is at the front/bottom
 	start_angle => 0,
 
 	# Angle below which a label on a pie slice is suppressed.
-	suppress_angle => 0,	# CONTRIB ryan <xomina@bitstream.net>
+	suppress_angle => 0,	# CONTRIB idea ryan <xomina@bitstream.net>
+
+	# and some public attributes without defaults
+	label		=> undef,
 );
+
+# PRIVATE
+sub _has_default { 
+	my $self = shift;
+	my $attr = shift || return;
+	exists $Defaults{$attr} || $self->SUPER::_has_default($attr);
+}
+
+sub initialise
+{
+	my $self = shift;
+	$self->SUPER::initialise();
+	while (my($key, $val) = each %Defaults)
+		{ $self->{$key} = $val }
+	$self->set( pie_height => _round(0.1 * $self->{height}) );
+	$self->set_value_font(gdTinyFont);
+	$self->set_label_font(gdSmallFont);
+}
 
 # PUBLIC methods, documented in pod
 sub plot # (\@data)
@@ -76,26 +100,6 @@ sub set_value_font # (fontname)
 
 # Inherit defaults() from GD::Graph
 
-# PRIVATE
-# called on construction by new.
-sub initialise()
-{
-	my $self = shift;
-
-	$self->SUPER::initialise();
-
-	my $key;
-	foreach $key (keys %Defaults) 
-	{
-		$self->set( $key => $Defaults{$key} );
-	}
-
-	$self->set( pie_height => _round(0.1 * $self->{height}) );
-
-	$self->set_value_font(gdTinyFont);
-	$self->set_label_font(gdSmallFont);
-}
-
 # inherit checkdata from GD::Graph
 
 # Setup the coordinate system and colours, calculate the
@@ -106,17 +110,20 @@ sub setup_coords()
 	my $s = shift;
 
 	# Make sure we're not reserving space we don't need.
-	$s->set('3d' => 0) 			if     ( $s->{pie_height} <= 0 );
-	$s->set(pie_height => 0)	unless ( $s->{'3d'} );
+	$s->{'3d'} = 0 				if     $s->{pie_height} <= 0;
+	$s->set(pie_height => 0)	unless $s->{'3d'};
+
+	my $tfh = $s->{title} ? $s->{gdta_title}->get('height') : 0;
+	my $lfh = $s->{label} ? $s->{gdta_label}->get('height') : 0;
 
 	# Calculate the bounding box for the pie, and
 	# some width, height, and centre parameters
 	$s->{bottom} = 
 		$s->{height} - $s->{pie_height} - $s->{b_margin} -
-		( $s->{lfh} ? $s->{lfh} + $s->{text_space} : 0 );
+		( $lfh ? $lfh + $s->{text_space} : 0 );
 
 	$s->{top} = 
-		$s->{t_margin} + ( $s->{tfh} ? $s->{tfh} + $s->{text_space} : 0 );
+		$s->{t_margin} + ( $tfh ? $tfh + $s->{text_space} : 0 );
 
 	$s->{left} = $s->{l_margin};
 
@@ -132,11 +139,6 @@ sub setup_coords()
 		if ( ($s->{bottom} - $s->{top}) <= 0 );
 	croak "Horizontal size too small"
 		if ( ($s->{right} - $s->{left}) <= 0 );
-
-	# set up the data colour list if it doesn't exist yet.
-	$s->set( 
-		dclrs => [qw( lred lgreen lblue lyellow lpurple cyan lorange )] 
-	) unless ( exists $s->{dclrs} );
 }
 
 # inherit open_graph from GD::Graph
@@ -151,14 +153,12 @@ sub setup_text
 		#print "'$s->{title}' at ($s->{xc},$s->{t_margin})\n";
 		$s->{gdta_title}->set(colour => $s->{tci});
 		$s->{gdta_title}->set_text($s->{title});
-		$s->set(tfh => $s->{gdta_title}->get('height'));
 	}
 
 	if ( $s->{label} ) 
 	{
 		$s->{gdta_label}->set(colour => $s->{lci});
 		$s->{gdta_label}->set_text($s->{label});
-		$s->set(lfh => $s->{gdta_title}->get('height'));
 	}
 
 	$s->{gdta_value}->set(colour => $s->{alci});
@@ -272,41 +272,58 @@ sub draw_data # (\@data, GD::Image)
 
 		$s->{graph}->fillToBorder($xe, $ye, $ac, $dc);
 
-		$s->put_slice_label($xe, $ye, $data->[0][$i])
-			if ($slice_angle > $s->{suppress_angle});
-
 		# If it's 3d, colour the front ones as well
-		# if one slice is very large (>180 deg) then
-		# we will need to fill it twice.  sbonds.
+		#
+		# if one slice is very large (>180 deg) then we will need to
+		# fill it twice.  sbonds.
+		#
+		# Independently noted and fixed by Jeremy Wadsack, in a slightly
+		# different way.
 		if ( $s->{'3d'} ) 
 		{
-			my $fills = $s->_get_pie_front_coords($pa, $pb);
-			my ($xe, $ye);
-
-			if (defined($fills->[0])) 
+			foreach my $fill ($s->_get_pie_front_coords($pa, $pb)) 
 			{
-				my $fill_num;
-				foreach  $fill_num (0..$#{ $fills }) 
-				{
-					($xe, $ye) = @{ $fills->[$fill_num] };
-					$s->{graph}->fillToBorder($xe, 
-						$ye + $s->{pie_height}/2, 
-					$ac, $dc);
-				}
+				$s->{graph}->fillToBorder(
+					$fill->[0], $fill->[1] + $s->{pie_height}/2, $ac, $dc);
 			}
 		}
 	}
+
+	# CONTRIB Jeremy Wadsack
+	#
+	# Large text, sticking out over the pie edge, could cause 3D pies to
+	# fill improperly: Drawing the text for a given slice before the
+	# next slice was drawn and filled could make the slice boundary
+	# disappear, causing the fill colour to flow out.  With this
+	# implementation, all the text is on top of the pie.
+
+	$pb = $s->{start_angle};
+	for $i (0 .. $s->{numpoints} ) 
+	{
+		next unless $data->[0][$i];
+
+		my $pa = $pb;
+		$pb += my $slice_angle = 360 * $data->[1][$i]/$total;
+
+		next if ($slice_angle <= $s->{suppress_angle});
+
+		my ($xe, $ye) = 
+			cartesian(
+				3 * $s->{w}/8, ($pa+$pb)/2,
+				$s->{xc}, $s->{yc}, $s->{h}/$s->{w}
+			);
+
+		$s->put_slice_label($xe, $ye, $data->[0][$i]);
+	}
+
 } #GD::Graph::pie::draw_data
 
 sub _get_pie_front_coords # (angle 1, angle 2)
 {
 	my $s = shift;
-	my $unlevelled_pa = shift;
-	my $unlevelled_pb = shift;
-	my $pa = level_angle($unlevelled_pa);
-	my $pb = level_angle($unlevelled_pb);
+	my $pa = level_angle(shift);
+	my $pb = level_angle(shift);
 	my @fills = ();
-	my ($x, $y);
 
 	if (in_front($pa))
 	{
@@ -319,14 +336,23 @@ sub _get_pie_front_coords # (angle 1, angle 2)
 			# sbonds.
 			if ($pa > $pb ) 
 			{
-				($x, $y) = cartesian(
-					$s->{w}/2, ($pa+$ANGLE_OFFSET)/2,
+				# This takes care of the left bit on the front
+				# Since we know exactly where we are, and in which
+				# direction this works, we can just get the coordinates
+				# for $pa.
+				my ($x, $y) = cartesian(
+					$s->{w}/2, $pa,
 					$s->{xc}, $s->{yc}, $s->{h}/$s->{w}
 				);
 
-				push @fills, [ $x, $y ];
-				# Reset $pa to the right edge of the front arc.
-				$pa = level_angle(0-$ANGLE_OFFSET);
+				# and move one pixel to the left, but only if we don't
+				# fall out of the pie!.
+				push @fills, [$x - 1, $y]
+					if $x - 1 > $s->{xc} - $s->{w}/2;
+
+				# Reset $pa to the right edge of the front arc, to do
+				# the right bit on the front.
+				$pa = level_angle(-$ANGLE_OFFSET);
 			}
 		}
 		else
@@ -349,26 +375,26 @@ sub _get_pie_front_coords # (angle 1, angle 2)
 		}
 	}
 
-	($x, $y) = cartesian(
-		$s->{w}/2, ($pa+$pb)/2,
+	my ($x, $y) = cartesian(
+		$s->{w}/2, ($pa + $pb)/2,
 		$s->{xc}, $s->{yc}, $s->{h}/$s->{w}
 	);
 
-	push @fills, [ $x, $y ];
+	push @fills, [$x, $y];
 
-	return \@fills;
+	return @fills;
 }
 
 # return true if this angle is on the front of the pie
-
 sub in_front # (angle)
 {
 	my $a = level_angle( shift );
 	( $a > ($ANGLE_OFFSET - 180) && $a < $ANGLE_OFFSET ) ? 1 : 0;
 }
 
+# XXX Ugh! I need to fix this. See the GD::Text module for better ways
+# of doing this.
 # return a value for angle between -180 and 180
-
 sub level_angle # (angle)
 {
 	my $a = shift;
@@ -383,6 +409,8 @@ sub put_slice_label # (GD:Image)
 	my $self = shift;
 	my ($x, $y, $label) = @_;
 
+	return unless defined $label;
+
 	$self->{gdta_value}->set_text($label);
 	$self->{gdta_value}->draw($x, $y);
 }
@@ -394,18 +422,11 @@ sub put_slice_label # (GD:Image)
 sub cartesian
 {
 	my ($r, $phi, $xi, $yi, $cr) = @_; 
-	my $PI=4*atan2(1, 1);
 
 	return (
-		$xi + $r * cos($PI * ($phi + $ANGLE_OFFSET)/180), 
-		$yi + $cr * $r * sin($PI * ($phi + $ANGLE_OFFSET)/180)
+		$xi + $r * cos(PI * ($phi + $ANGLE_OFFSET)/180), 
+		$yi + $cr * $r * sin(PI * ($phi + $ANGLE_OFFSET)/180)
 	);
-}
-
-sub pick_data_clr # (number)
-{
-	my $s = shift;
-	return _rgb( $s->{dclrs}[ $_[0] % (1 + $#{$s->{dclrs}}) ] );
 }
 
 1;

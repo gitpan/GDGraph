@@ -18,7 +18,7 @@
 #		GD::Graph::pie
 #		GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.6 2000/01/02 05:37:15 mgjv Exp $
+# $Id: Graph.pm,v 1.11 2000/01/09 12:43:58 mgjv Exp $
 #
 #==========================================================================
 
@@ -36,11 +36,11 @@ use GD;
 use GD::Text::Align;
 use Carp;
 
-$GD::Graph::prog_rcs_rev = q{$Revision: 1.6 $};
+$GD::Graph::prog_rcs_rev = q{$Revision: 1.11 $};
 $GD::Graph::prog_version = 
 	($GD::Graph::prog_rcs_rev =~ /\s+(\d*\.\d*)/) ? $1 : "0.0";
 
-$GD::Graph::VERSION = '1.22';
+$GD::Graph::VERSION = '1.23';
 
 # Some tools and utils
 use GD::Graph::colour qw(:colours);
@@ -62,8 +62,8 @@ my %Defaults = (
 	# Set the factor with which to resize the logo in the chart (need to
 	# automatically compute something nice for this, really), set the 
 	# default logo file name, and set the logo position (UR, BR, UL, BL)
-	logo_resize   => 1.0,
 	logo          => undef,
+	logo_resize   => 1.0,
 	logo_position => 'LR',
 
 	# Do we want a transparent background?
@@ -78,16 +78,30 @@ my %Defaults = (
 	# marks, etc..)
 	bgclr         => 'white',	# background colour
 	fgclr         => 'dblue',	# Axes and grid
-	textclr       => 'dblue',	# All text, apart from the following 2
+	boxclr		  => undef,		# Fill colour for box axes, default: not used
+	accentclr     => 'gray',	# bar, area and pie outlines.
+
 	labelclr      => 'dblue',	# labels on axes
 	axislabelclr  => 'dblue',	# values on axes
-	accentclr     => 'gray',	# bar, area and pie outlines.
-	boxclr		  => undef,		# Fill colour for box axes, default: not used
 	legendclr	  => 'dblue',	# Text for the legend
+	textclr       => 'dblue',	# All text, apart from the following 2
+	
+	# data set colours
+	dclrs => [ qw(lred lgreen lblue lyellow lpurple cyan lorange)], 
 
 	# number of pixels to use as text spacing
 	text_space    => 8,
+
+	# These have undefined values, but are here so that the set method
+	# knows about them:
+	title		=> undef,
 );
+
+sub _has_default { 
+	my $self = shift;
+	my $attr = shift || return;
+	exists $Defaults{$attr} 
+}
 
 #
 # PUBLIC methods, documented in pod.
@@ -122,28 +136,33 @@ sub new  # ( width, height ) optional;
 	return $self;
 }
 
+sub get
+{
+	my $self = shift;
+	my @wanted = map $self->{$_}, @_;
+	wantarray ? @wanted : $wanted[0];
+}
+
 sub set
 {
-	my $s = shift;
+	my $self = shift;
 	my %args = @_;
-
-	$s->{_set_error} = 0;
 
 	foreach (keys %args) 
 	{ 
 		# Enforce read-only attributes.
-		/^width$/i || /^height$/ and do 
+		/^width$/ || /^height$/ and do 
 		{
-			$s->Error(
-				"Attempt made to set read-only attribute '$_'-- not set");
-			$s->{_set_error} = 1;
+			$self->_error("Read-only attribute '$_' not set");
 			next;
 		};
 
-		$s->{$_} = $args{$_}; 
+		$self->{$_} = $args{$_}, next if $self->_has_default($_); 
+
+		print "Hmmm to '$_'\n";
 	}
 
-	return $s->{_set_error} ? undef : 1;
+	return $self->error ? undef : 1;
 }
 
 # Generic routine to instantiate GD::Text::Align objects for text
@@ -274,14 +293,13 @@ sub check_data # \@data
 	my $self = shift;
 	my $data = shift;
 
-	$self->set(numsets => $#$data);
-	$self->set(numpoints => $#{@$data[0]});
+	$self->{numsets} = $#$data;
+	$self->{numpoints} = $#{@$data[0]};
 
 	( $self->{numsets} < 1 || $self->{numpoints} < 0 ) and 
 		croak "GD::Graph: No Data";
 
-	my $i;
-	for $i ( 1..$self->{numsets} ) 
+	for my $i ( 1..$self->{numsets} ) 
 	{
 		croak "Data array $i: length misfit"
 			unless ( $self->{numpoints} == $#{@$data[$i]} );
@@ -415,7 +433,7 @@ sub set_clr_uniq # GD::Image, r, g, b
 sub pick_data_clr # number
 {
 	my $s = shift;
-	_rgb($s->{dclrs}[$_[0] % (1+$#{$s->{dclrs}}) -1]);
+	_rgb($s->{dclrs}[$_[0] % @{$s->{dclrs}} - 1]);
 }
 
 # contrib "Bremford, Mike" <mike.bremford@gs.com>
@@ -423,8 +441,8 @@ sub pick_border_clr # number
 {
 	my $s = shift;
 
-	exists $s->{borderclrs} ?
-		_rgb($s->{borderclrs}[$_[0] % (1+$#{$s->{borderclrs}}) -1]) :
+	ref $s->{borderclrs} ?
+		_rgb($s->{borderclrs}[$_[0] % @{$s->{borderclrs}} - 1]) :
 		_rgb($s->{accentclr});
 }
 
@@ -445,10 +463,16 @@ sub die_abstract
 
 # XXX grumble. This really needs to be fixed up.
 # Simple error handler.
-sub Error {
-  my $s = shift;
-  my $msg = shift;
-  print "GD::Graph: $msg\n";
+sub _error {
+  my $self = shift;
+  my @msgs = @_;
+  push @{$self->{_errors}}, @msgs;
+}
+
+sub error
+{
+	my $self = shift;
+	ref $self->{_errors} ? join "\n", @{$self->{_errors}} : ""
 }
 
 sub gd 
@@ -541,40 +565,90 @@ Fill an array of arrays with the x values and the values of the data
 sets.  Make sure that every array is the same size, otherwise
 I<GD::Graph> will complain and refuse to compile the graph.
 
-    @data = ( 
-        ["1st","2nd","3rd","4th","5th","6th","7th", "8th", "9th"],
-        [    1,    2,    5,    6,    3,  1.5,    1,     3,     4]
-        [ sort { $a <=> $b } (1, 2, 5, 6, 3, 1.5, 1, 3, 4) ]
-    );
+  @data = ( 
+    ["1st","2nd","3rd","4th","5th","6th","7th", "8th", "9th"],
+    [    1,    2,    5,    6,    3,  1.5,    1,     3,     4]
+    [ sort { $a <=> $b } (1, 2, 5, 6, 3, 1.5, 1, 3, 4) ]
+  );
 
 If you don't have a value for a point in a certain dataset, you can
 use B<undef>, and the point will be skipped.
 
 Create a new I<GD::Graph> object by calling the I<new> method on the
-graph type you want to create (I<chart> is I<bars, lines, points,
-linespoints>, I<mixed> or I<pie>).
+graph type you want to create (I<chart> is I<bars>, I<lines>, I<points>,
+I<linespoints>, I<mixed> or I<pie>).
 
-    $graph = GD::Graph::chart->new(400, 300);
+  $graph = GD::Graph::chart->new(400, 300);
 
 Set the graph options. 
 
-    $graph->set( 
-        x_label           => 'X Label',
-        y_label           => 'Y label',
-        title             => 'Some simple graph',
-        y_max_value       => 8,
-        y_tick_number     => 8,
-        y_label_skip      => 2 
-    );
+  $graph->set( 
+      x_label           => 'X Label',
+      y_label           => 'Y label',
+      title             => 'Some simple graph',
+      y_max_value       => 8,
+      y_tick_number     => 8,
+      y_label_skip      => 2 
+  );
 
 and plot the graph.
 
-    my $gd = $my_graph->plot(\@data);
+  my $gd = $my_graph->plot(\@data);
 
 Then do whatever your current version of GD allows you to do to save the
-file.
+file. For versions of GD older than 1.19, you'd do something like:
 
-=head1 METHODS AND FUNCTIONS
+  open(IMG, '>file.gif') or die $!;
+  binmode IMG;
+  print IMG $gd->gif;
+  close IMG;
+
+and for newer versions (1.20 and up) you'd write
+
+  open(IMG, '>file.png') or die $!;
+  binmode IMG;
+  print IMG $gd->png;
+
+or
+
+  open(IMG, '>file.gd2') or die $!;
+  binmode IMG;
+  print IMG $gd->gd2;
+
+Then there's also of course the possibility of using a shorter
+version (for each of the export functions that GD supports):
+
+  print IMG $my_graph->plot(\@data)->gif;
+  print IMG $my_graph->plot(\@data)->png;
+  print IMG $my_graph->plot(\@data)->gd;
+  print IMG $my_graph->plot(\@data)->gd2;
+
+If you want to write something that doesn't require your code to 'know'
+whether to use gif or png, you could do something like:
+
+  if ($gd->can('png')) { # blabla }
+
+or you can use the convenience method C<export_format>:
+
+  my $format = $my_graph->export_format;
+  open(IMG, ">file.$format") or die $!;
+  binmode IMG;
+  print IMG $my_graph->plot(\@data)->$format();
+  close IMG;
+
+or for CGI scripts:
+
+  use CGI qw(:standard);
+  #...
+  my $format = $my_graph->export_format;
+  print header("image/$format");
+  binmode STDOUT;
+  print $my_graph->plot(\@data)->$format();
+
+(the parentheses after $format are necessary, to help the compiler
+decide that you mean a method name there)
+
+=head1 METHODS
 
 =head2 Methods for all graphs
 
@@ -584,7 +658,8 @@ file.
 
 Create a new object $graph with optional width and heigth. 
 Default width = 400, default height = 300. I<chart> is either
-I<bars, lines, points, linespoints, area> or I<pie>.
+I<bars>, I<lines>, I<points>, I<linespoints>, I<area>, I<mixed> or
+I<pie>.
 
 =item $graph->set_text_clr(I<colour name>)
 
@@ -592,25 +667,23 @@ Set the colour of the text. This will set the colour of the titles,
 labels, and axis labels to I<colour name>. Also see the options
 I<textclr>, I<labelclr> and I<axislabelclr>.
 
-=item $graph->set_title_font(I<fontname> [, I<font_size>])
+=item $graph->set_title_font(font specification)
 
 Set the font that will be used for the title of the chart.
-Depending on your version of GD, this accepts both GD builtin fonts or
-the name of a TrueType font file. In the case of a TrueType font, you
-can also specify the font size.
-
-Example:
-
-    $my_graph->set_title_font(GD::gdTinyFont);
-    $my_graph->set_title_font('/fonts/arial.ttf', 18);
+See L<"FONTS">.
 
 =item $graph->plot(I<\@data>)
 
 Plot the chart, and return the GD::Image object.
 
-=item $graph->set(key1 => value1, key2 => value2 ...)
+=item $graph->set(attrib1 => value1, attrib2 => value2 ...)
 
 Set chart options. See OPTIONS section.
+
+=item $graph->get(attrib1, attrib2)
+
+Returns a list of the values of the attributes. In scalar context
+returns the value of the first attribute only.
 
 =item $graph->gd()
 
@@ -640,13 +713,13 @@ otherwise. Can also be called as a class method or static method.
 
 =over 4
 
-=item $graph->set_label_font(I<fontname>)
+=item $graph->set_label_font(font specification)
 
-=item $graph->set_value_font(I<fontname>)
+=item $graph->set_value_font(font specification)
 
 Set the font that will be used for the label of the pie or the 
-values on the pie.  Possible choices are defined in L<GD>. 
-See also I<set_title_font>.
+values on the pie.
+See L<"FONTS">.
 
 =back
 
@@ -655,17 +728,17 @@ See also I<set_title_font>.
 
 =over 4
 
-=item $graph->set_x_label_font(I<font name>)
+=item $graph->set_x_label_font(font specification)
 
-=item $graph->set_y_label_font(I<font name>)
+=item $graph->set_y_label_font(font specification)
 
-=item $graph->set_x_axis_font(I<font name>)
+=item $graph->set_x_axis_font(font specification)
 
-=item $graph->set_y_axis_font(I<font name>)
+=item $graph->set_y_axis_font(font specification)
 
 Set the font for the x and y axis label, and for the x and y axis
 value labels.
-See also I<set_title_font>.
+See L<"FONTS">.
 
 =back
 
@@ -713,14 +786,27 @@ colour marked as transparent (see also option I<bgclr>).  Default: 1.
 If set to a true value, the produced image will be interlaced.
 Default: 1.
 
-=item bgclr, fgclr, boxclr, accentclr
+=back
+
+=head2 Colours
+
+=over 4
+
+=item bgclr, fgclr, boxclr, accentclr, shadowclr
 
 Drawing colours used for the chart: background, foreground (axes and
-grid), axis box fill colour, and accent (bar, area and pie outlines).
+grid), axis box fill colour, accents (bar, area and pie outlines), and
+shadow (currently only for bars).
 
 All colours should have a valid value as described in L<"COLOURS">,
-except boxclr, which can be undefined, in which case the background
-colour will be used. 
+except boxclr, which can be undefined, in which case the box will not be
+filled. 
+
+=item shadow_depth
+
+Depth of a shadow, positive for right/down shadow, negative for left/up
+shadow, 0 for no shadow (default).
+Also see the C<shadowclr> and C<bar_spacing> options.
 
 =item labelclr, axislabelclr, legendclr, textclr
 
@@ -741,11 +827,35 @@ L<GD::Graph::colour> (C<S<perldoc GD::Graph::colour>> for the names available).
 The first (fifth, ninth) data set will be green, the next pink, etc.
 Default: [ qw(lred lgreen lblue lyellow lpurple cyan lorange) ] 
 
+=item borderclrs
+
+This controls the colours of the borders of the bars data sets. Like
+dclrs, it is a reference to an array of colour names as defined in
+L<GD::Graph::colour>.
+
+Setting the border colours to the background colour of the graph allows
+bars to "float" above the X-axis. For example (assuming your background
+is white):
+
+    $graph->set( dclrs => [ qw(white cyan cyan) ] );
+    $graph->set( borderclrs => [ qw(white black black) ] );
+
+Creates a cyan bar with a black line across the middle, ideal for showing
+ranges with the average value.
+
+=item cycle_clrs
+
+If set to a true value, bars will not have a colour from C<dclrs> per
+dataset, but per point. The colour sequence will be identical for each
+dataset. Note that this may have a weird effect if you are drawing more
+than one data set. If this is set to a value larger than 1 the border
+colour of the bars will cycle through the colours in C<borderclrs>.
+
 =back
 
 =head2 Options for graphs with axes.
 
-options for I<bars>, I<lines>, I<points>, I<linespoints> and 
+options for I<bars>, I<lines>, I<points>, I<linespoints>, I<mixed> and 
 I<area> charts.
 
 =over 4
@@ -982,21 +1092,6 @@ Number of pixels to leave open between bars. This works well in most
 cases, but on some platforms, a value of 1 will be rounded off to 0.
 Default: 0
 
-=item borderclrs
-
-This controls the colours of the borders of the bars. Like dclrs, it is a
-reference to an array of colour names as defined in
-L<GIFgraph::colour>.
-
-Setting the border colours to the background colour of the graph allows
-bars to "float" above the X-axis. For example:
-
-    $graph->set( dclrs => [ qw(white cyan cyan) ] );
-    $graph->set( bclrs => [ qw(white black black) ] );
-
-Creates a cyan bar with a black line across the middle, ideal for showing
-ranges with the average value.
-
 =back
 
 =head2 Options for graphs with lines
@@ -1092,7 +1187,7 @@ If a key is I<undef> or an empty string, the legend entry will be skipped.
 
 =item $graph->set_legend_font(I<font name>);
 
-Sets the font for the legend text (see also I<set_title_font>).
+Sets the font for the legend text (see L<"FONTS">).
 Default: GD::gdTinyFont.
 
 =back
@@ -1159,6 +1254,10 @@ Default: 0.
 If a pie slice is smaller than this angle (in degrees), a label will not
 be drawn on it. Default: 0.
 
+=item label
+
+Print this label below the pie. Default: undef.
+
 =back
 
 =head1 COLOURS
@@ -1172,6 +1271,23 @@ package L<GD::Graph::colour>. C<S<perldoc GD::Graph::colour>> should give
 you the documentation for that module, containing all valid colour
 names. I will probably change this to read the systems rgb.txt file if 
 it is available.
+
+=head1 FONTS
+
+Depending on your version of GD, this accepts both GD builtin fonts or
+the name of a TrueType font file. In the case of a TrueType font, you
+must specify the font size. See L<GD::Text> for more details and other
+things, since all font handling in GD::Graph is delegated to there.
+
+Examples:
+
+    $my_graph->set_title_font('/fonts/arial.ttf', 18);
+    $my_graph->set_legend_font(gdTinyFont);
+    $my_graph->set_legend_font(
+        ['verdana', 'arial', gdMediumBoldFont], 12)
+
+(The above discussion is based on GD::Text 0.65. Older versions have
+more restrictive behaviour).
 
 =head1 AUTHOR
 
@@ -1188,6 +1304,10 @@ it and/or modify it under the same terms as Perl itself.
 
 =head2 Acknowledgements
 
+Thanks to Steve Bonds for releasing Chart::PNGgraph, and keeping the
+code alive when GD reached version 1.20, and I didn't have time to do
+something about it.
+
 Thanks to the following people for contributing code, or sending me
 fixes:
 Dave Belcher,
@@ -1198,7 +1318,8 @@ brian d foy,
 Ari Jolma,
 Honza Pazdziora,
 Scott Prahl,
-Vegard Vesterheim.
+Vegard Vesterheim,
+Jeremy Wadsack.
 
 And some people whose real name I don't know, and whose email address
 I'd rather not publicise without their consent.

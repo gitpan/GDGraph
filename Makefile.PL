@@ -1,9 +1,7 @@
 # This -*- perl -*- script makes the Makefile
-# $Id: Makefile.PL,v 1.4 2000/01/02 23:00:53 mgjv Exp $
+# $Id: Makefile.PL,v 1.6 2000/01/09 12:43:58 mgjv Exp $
  
 #--- Distribution section ---
- 
-BEGIN { require 5.005 }
  
 use ExtUtils::MakeMaker;
 use Config;
@@ -19,7 +17,7 @@ WriteMakefile(
 		($] >= 5.005 ?
 			('ABSTRACT'		=> 'Produces charts with GD',
 			 'AUTHOR'		=> 'Martien Verbruggen <mgjv@comdyn.com.au>',
-			) : ()
+			):()
 		),
 
 		'PREREQ_PM'			=> { 
