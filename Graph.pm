@@ -18,7 +18,7 @@
 #		GD::Graph::pie
 #		GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.14 2000/01/28 22:03:10 mgjv Exp $
+# $Id: Graph.pm,v 1.24 2000/04/15 08:59:36 mgjv Exp $
 #
 #==========================================================================
 
@@ -30,17 +30,17 @@
 
 package GD::Graph;
 
-use strict;
+$GD::Graph::prog_version = '$Revision: 1.24 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.30';
 
+use strict;
 use GD;
 use GD::Text::Align;
+use GD::Graph::Data;
+use GD::Graph::Error;
 use Carp;
 
-$GD::Graph::prog_rcs_rev = q{$Revision: 1.14 $};
-$GD::Graph::prog_version = 
-	($GD::Graph::prog_rcs_rev =~ /\s+(\d*\.\d*)/) ? $1 : "0.0";
-
-$GD::Graph::VERSION = '1.24';
+@GD::Graph::ISA = qw(GD::Graph::Error);
 
 # Some tools and utils
 use GD::Graph::colour qw(:colours);
@@ -115,11 +115,10 @@ sub new  # ( width, height ) optional;
 	if (@_) 
 	{
 		# If there are any parameters, they should be the size
-		$self->{width} = shift;
+		return $self->set_error(
+			"Usage: GD::Graph::<type>::new(width, height)") unless @_ >= 2;
 
-		# If there's an x size, there should also be a y size.
-		croak "Usage: GD::Graph::<type>::new( [width, height] )\n" 
-			unless @_;
+		$self->{width} = shift;
 		$self->{height} = shift;
 	} 
 	else 
@@ -131,7 +130,7 @@ sub new  # ( width, height ) optional;
 
 	# Initialise all relevant parameters to defaults
 	# These are defined in the subclasses. See there.
-	$self->initialise();
+	$self->initialise() or return;
 
 	return $self;
 }
@@ -147,22 +146,25 @@ sub set
 {
 	my $self = shift;
 	my %args = @_;
+	my $w = 0;
 
 	foreach (keys %args) 
 	{ 
 		# Enforce read-only attributes.
 		/^width$/ || /^height$/ and do 
 		{
-			$self->_error("Read-only attribute '$_' not set");
+			$self->_set_warning("Read-only attribute '$_' not set");
+			$w++;
 			next;
 		};
 
 		$self->{$_} = $args{$_}, next if $self->_has_default($_); 
 
-		print "Hmmm to '$_'\n";
+		$w++;
+		$self->_set_warning("No attribute '$_'");
 	}
 
-	return $self->error ? undef : 1;
+	return $w ? undef : "No problems";
 }
 
 # Generic routine to instantiate GD::Text::Align objects for text
@@ -177,7 +179,7 @@ sub _set_font
 		$self->{$name} = GD::Text::Align->new($self->{graph}, 
 			valign => 'top',
 			halign => 'center',
-		) or return;
+		) or return $self->_set_error("Couldn't set font");
 	}
 
 	$self->{$name}->set_font(@_);
@@ -189,94 +191,40 @@ sub set_title_font # (fontname, size)
 	$self->_set_font('gdta_title', @_);
 }
 
-# XXX Notify Steve Bonds that set_title_TTF method has been removed. 
-# He'll need to create a wrapper for Chart::PNGgraph (or copy this
-# one)
-sub set_title_TTF 
-{
-	my $self = shift;
-	my $hash_ref = shift;
-
-	$self->set_title_font($hash_ref->{fontname}, $hash_ref->{size});
-}
-
 sub set_text_clr # (colour name)
 {
-	my $s = shift;
-	my $c = shift;
+	my $self = shift;
+	my $clr  = shift;
 
-	$s->set(
-		textclr       => $c,
-		labelclr      => $c,
-		axislabelclr  => $c,
+	$self->set(
+		textclr       => $clr,
+		labelclr      => $clr,
+		axislabelclr  => $clr,
 	);
 }
 
-sub plot # (\@data)
+sub plot
 {
 	# ABSTRACT
-	my $s = shift;
-	$s->die_abstract( "sub plot missing," );
+	my $self = shift;
+	$self->die_abstract("sub plot missing,");
 }
-
-# Routine to read GNUplot style data files
-# NOT USEABLE AT THE MOMENT
-sub ReadFile 
-{
-	my $file = shift; 
-	my @cols = @_; 
-	my (@out, $i, $j);
-
-	@cols = 1 if ( $#cols < 1 );
-
-	open (DATA, $file) || do { 
-		carp "Cannot open file: $file"; 
-		return []; 
-	};
-
-	$i=0; 
-	while (defined(<DATA>)) 
-	{ 
-		s/^\s+|\s+$//;
-		next if ( /^#/ || /^!/ || /^[ \t]*$/ );
-		@_ = split(/[ \t]+/);
-		$out[0][$i] = $_[0];
-		$j=1;
-		foreach (@cols) 
-		{
-			if ( $_ > $#_ ) { 
-				carp "Data column $_ not present"; 
-				return []; 
-			}
-			$out[$j][$i] = $_[$_]; $j++;
-		}
-		$i++;
-	}
-	close(DATA);
-
-	return @out;
-
-} # ReadFile
-
-#
-# PRIVATE methods
-#
 
 # Set defaults that apply to all graph/chart types. 
 # This is called by the default initialise methods 
 # from the objects further down the tree.
 
-sub initialise()
+sub initialise
 {
 	my $self = shift;
 
 	foreach (keys %Defaults) 
 	{
-		$self->set( $_ => $Defaults{$_} );
+		$self->set($_ => $Defaults{$_});
 	}
 
-	$self->open_graph() or return;
-	$self->set_title_font(GD::Font->Large) or return;
+	$self->open_graph() 					or return;
+	$self->set_title_font(GD::Font->Large) 	or return;
 }
 
 
@@ -293,17 +241,15 @@ sub check_data # \@data
 	my $self = shift;
 	my $data = shift;
 
-	$self->{numsets} = $#$data;
-	$self->{numpoints} = $#{@$data[0]};
+	$self->{_data} = GD::Graph::Data->new($data) 
+		or return $self->_set_error(GD::Graph::Data->error);
+	
+	$self->{_data}->make_strict;
 
-	( $self->{numsets} < 1 || $self->{numpoints} < 0 ) and 
-		croak "GD::Graph: No Data";
+	$self->{_data}->num_sets > 0 && $self->{_data}->num_points > 0
+		or return $self->_set_error('No data sets or points');
 
-	for my $i ( 1..$self->{numsets} ) 
-	{
-		croak "Data array $i: length misfit"
-			unless ( $self->{numpoints} == $#{@$data[$i]} );
-	}
+	return $self;
 }
 
 # Open the graph output canvas by creating a new GD object.
@@ -319,10 +265,9 @@ sub open_graph
 # index numbers for them) setting the graph to transparent, and 
 # interlaced, putting a logo (if defined) on there.
 
-sub init_graph # GD::Image
+sub init_graph
 {
 	my $self = shift;
-	my $g = $self->{graph};
 
 	$self->{bgci} = $self->set_clr(_rgb($self->{bgclr}));
 	$self->{fgci} = $self->set_clr(_rgb($self->{fgclr}));
@@ -333,9 +278,14 @@ sub init_graph # GD::Image
 	$self->{legendci} = $self->set_clr(_rgb($self->{legendclr}));
 	$self->{boxci} = $self->set_clr(_rgb($self->{boxclr})) 
 		if $self->{boxclr};
-	$g->transparent($self->{bgci}) if $self->{transparent};
-	$g->interlaced($self->{interlaced});
+
+	$self->{graph}->transparent($self->{bgci}) if $self->{transparent};
+	$self->{graph}->interlaced($self->{interlaced});
+
+	# XXX yuck. This doesn't belong here.. or does it?
 	$self->put_logo();
+
+	return $self;
 }
 
 sub _read_logo_file
@@ -343,6 +293,7 @@ sub _read_logo_file
 	my $self = shift;
 	my $gdimport = 'newFrom' . ucfirst($self->export_format);
 	my $glogo;
+	local (*LOGO);
 
 	open(LOGO, $self->{logo}) or return;
 	binmode(LOGO);
@@ -351,17 +302,15 @@ sub _read_logo_file
 		carp "Problems reading $self->{logo}"; 
 		return;
 	}
-	close(LOGO);
 
 	return $glogo;
 }
 
 # read in the logo, and paste it on the graph canvas
 
-sub put_logo # GD::Image
+sub put_logo
 {
 	my $self = shift;
-	local (*LOGO);
 	return unless defined $self->{logo};
 
 	my $glogo = $self->_read_logo_file() or return;
@@ -405,84 +354,59 @@ sub put_logo # GD::Image
 
 sub set_clr # GD::Image, r, g, b
 {
-	my $s = shift; 
-	my $g = $s->{graph}; 
+	my $self = shift; 
 	my $i;
 
 	# Check if this colour already exists on the canvas
-	if ( ( $i = $g->colorExact( @_ ) ) < 0 ) 
+	if (($i = $self->{graph}->colorExact(@_)) < 0) 
 	{
-		# if not, allocate a new one, and return it's index
-		return $g->colorAllocate( @_ );
+		# if not, allocate a new one, and return its index
+		$i = $self->{graph}->colorAllocate(@_);
+
+		# XXX if this fails, we should use colorClosest.
+		# All of this could potentially be done by using colorResolve
 	} 
 	return $i;
 }
 
-# Set a colour, disregarding wether or not it already exists.
+# Set a colour, disregarding wether or not it already exists. This may
+# be necessary where one wants the same colour to have a different
+# index, as in pie slices of the same color as the edge.
+# Note that this could be cleaned up after needed, but we won't do that.
 
 sub set_clr_uniq # GD::Image, r, g, b
 {
-	my $s=shift; 
-	my $g=$s->{graph}; 
-
-	$g->colorAllocate( @_ ); 
+	my $self = shift; 
+	$self->{graph}->colorAllocate(@_); 
 }
 
 # Return an array of rgb values for a colour number
 
 sub pick_data_clr # number
 {
-	my $s = shift;
-	_rgb($s->{dclrs}[$_[0] % @{$s->{dclrs}} - 1]);
+	my $self = shift;
+	_rgb($self->{dclrs}[$_[0] % @{$self->{dclrs}} - 1]);
 }
 
 # contrib "Bremford, Mike" <mike.bremford@gs.com>
 sub pick_border_clr # number
 {
-	my $s = shift;
-
-	ref $s->{borderclrs} ?
-		_rgb($s->{borderclrs}[$_[0] % @{$s->{borderclrs}} - 1]) :
-		_rgb($s->{accentclr});
-}
-
-# DEBUGGING
-# data_dump obsolete now, use Data::Dumper
-
-sub die_abstract
-{
-	my $s = shift;
-	my $msg = shift;
-	# ABSTRACT
-	confess
-		"Subclass (" .
-		ref($s) . 
-		") not implemented correctly: " .
-		(defined($msg) ? $msg : "unknown error");
-}
-
-# XXX grumble. This really needs to be fixed up.
-# Simple error handler.
-sub _error {
-  my $self = shift;
-  my @msgs = @_;
-  push @{$self->{_errors}}, @msgs;
-}
-
-sub error
-{
 	my $self = shift;
-	ref $self->{_errors} ? join "\n", @{$self->{_errors}} : ""
+
+	ref $self->{borderclrs} ?
+		_rgb($self->{borderclrs}[$_[0] % @{$self->{borderclrs}} - 1]) :
+		_rgb($self->{accentclr});
 }
 
 sub gd 
 {
-	my $s = shift;
-	return $s->{graph};
+	my $self = shift;
+	return $self->{graph};
 }
 
 sub export_format
 {
+	my $proto = shift;
 	GD::Image->can('png') and return 'png';
 	GD::Image->can('gif') and return 'gif';
 	return;
@@ -490,13 +414,26 @@ sub export_format
 
 sub can_do_ttf
 {
-	my $self = shift;
-
-	# Title font is the only one guaranteed to be always available
-	return $self->{gdta_title}->can_do_ttf;
+	my $proto = shift;
+	return GD::Text->can_do_ttf;
 }
 
-$GD::Graph::VERSION;
+# DEBUGGING
+# data_dump obsolete now, use Data::Dumper
+
+sub die_abstract
+{
+	my $self = shift;
+	my $msg = shift;
+	# ABSTRACT
+	confess
+		"Subclass (" .
+		ref($self) . 
+		") not implemented correctly: " .
+		(defined($msg) ? $msg : "unknown error");
+}
+
+"Just another true value";
 
 __END__
 
@@ -1039,17 +976,36 @@ elements are title and axis labels.
 
 Default: 8.
 
+=item cumulate
+
+If this attribute is set to a true value, the data sets will be
+cumulated. This means that they will be stacked on top of each other. A
+side effect of this is that C<overwrite> will be set to a true value.
+
+Notes: This only works for bar and area charts at the moment.
+
+If you have negative values in your data sets, setting this option might
+produce odd results. Of course, the graph itself would be quite
+meaningless.
+
 =item overwrite
 
 If set to 0, bars of different data sets will be drawn next to each
-other. If set to 1, they will be drawn in front of each other. If set
-to 2 they will be drawn on top of each other.
+other. If set to 1, they will be drawn in front of each other.
 Default: 0.
 
-If you have negative values in your data sets, setting overwrite to 2
-might produce odd results. Of course, the graph itself would be quite
-meaningless, because overwrite = 2 is meant to show some cumulative
-effect.
+Note: Setting overwrite to 2 to produce cumulative sets is deprecated,
+and may disappear in future versions of GD::Graph.
+Instead see the C<cumulate> attribute.
+
+=item correct_width
+
+If this is set to a true value and C<x_tick_number> is false, then the
+width of the graph will be recalculated to make sure that each data
+point is exactly an integer number of pixels wide. You probably never
+want to fiddle with this.
+
+Default: 1 for bar and mixed charts, 0 for others.
 
 =back
 
@@ -1297,6 +1253,17 @@ Examples:
 (The above discussion is based on GD::Text 0.65. Older versions have
 more restrictive behaviour).
 
+=head1 NOTES
+
+As with all Modules for Perl: Please stick to using the interface. If
+you try to fiddle too much with knowledge of the internals of this
+module, you could get burned. I may change them at any time.
+
+=head1 BUGS
+
+GD::Graph objects cannot be reused. To create a new plot, you have to
+create a new GD::Graph object.
+
 =head1 AUTHOR
 
 Martien Verbruggen <mgjv@comdyn.com.au>
@@ -1322,6 +1289,7 @@ Dave Belcher,
 Steve Bonds,
 Mike Bremford,
 Damon Brodie,
+Gary Deschaines
 brian d foy,
 Edwin Hildebrand,
 Ari Jolma,

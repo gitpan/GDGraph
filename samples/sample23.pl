@@ -1,4 +1,4 @@
-use GD::Graph::bars;
+use GD::Graph::area;
 require 'save.pl';
 
 # CONTRIB Edwin Hildebrand.
@@ -6,7 +6,7 @@ require 'save.pl';
 # See changes in bars.pm: Check for bar height rounding errors when 
 # stacking bars.
 
-print STDERR "Processing sample 1-8\n";
+print STDERR "Processing sample 2-3\n";
 
 @dat = qw(
 	991006 991007 991114 991117 991118 991119 991120 
@@ -55,7 +55,7 @@ push(@data,\@sld);
 );
 
 # get graph object
-$graph = GD::Graph::bars->new(600, 400);
+$graph = GD::Graph::area->new(600, 400);
 
 # set graph legend
 $graph->set_legend(@legend);
@@ -72,7 +72,8 @@ $graph->set(
    'x_ticks'          => 0,
    'x_label_position' => '.5',     # centered x label
    'y_label_position' => '.5',     # centered y label
-   'cumulate'         => 1,        # stacked x data
+
+   'cumulate'         => 2,        # stacked x data
 
    'bgclr'            => 'white',  # makes background transparent
    'transparent'      => 0,
@@ -89,8 +90,11 @@ $graph->set(
    'x_plot_values'    => 1,        # display tick values
    'x_labels_vertical'=> 1,        # display tick values vertically
    'zero_axis'        => 1,        # show line at y value =0
+   'lg_cols'          => 7,        # num legend columns
+
+   'accent_treshold'  => 100_000,
 );
 
 $graph->plot(\@data);
-save_chart($graph, 'sample18');
+save_chart($graph, 'sample23');
 

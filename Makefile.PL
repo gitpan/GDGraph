@@ -1,5 +1,5 @@
 # This -*- perl -*- script makes the Makefile
-# $Id: Makefile.PL,v 1.6 2000/01/09 12:43:58 mgjv Exp $
+# $Id: Makefile.PL,v 1.8 2000/04/15 04:48:21 mgjv Exp $
  
 #--- Distribution section ---
  
@@ -10,7 +10,7 @@ my @clean = qw(*.old *.save tags);
 push @clean, map { "*/$_" } @clean;
  
 WriteMakefile(
-		'VERSION_FROM'		=> 'lib/GD/Graph.pm',	#finds $VERSION
+		'VERSION_FROM'		=> 'Graph.pm',	#finds $VERSION
 		'DISTNAME'  		=> 'GDGraph',
 		'NAME'				=> 'GD::Graph',
 
@@ -37,7 +37,7 @@ sub MY::postamble
 {
 qq(
 samples: all
-	\@(cd samples && make PERL=$Config{'perl'})
+	\@(cd samples && make PERL=$Config{'perlpath'})
 	\@echo Samples have been created in samples directory
 
 tags:

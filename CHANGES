@@ -1,3 +1,51 @@
+15 Apr 2000
+
+- Added some code (thanks Gary) to deal better with 'numerical' X axes.
+- Prepared version 1.30 for release, mainly to make sure that patches
+  that come in are done against the new code base
+
+27 Feb 2000
+
+- Added cumulate attribute, needs more code changes to fully replace
+  'overwrite == 2'. For now, it will work.
+
+20 Feb 2000
+
+- Added correct_width option
+- Fixed bug in pie. If one of the slices ended up at exactly 90 degrees,
+  or very close to it, The fill would cause GD to core dump. Ugly.
+  Introduced half a degree of relaxation there.
+  There still are troubles with this. I really need to think of another
+  way to do this.
+
+15 - 17 Feb 2000
+
+- Added Error class, removed error checking code from Data
+- Added $VERSION to each module
+- Fixed bug in can_do_ttf. Can now _really_ be called as static or
+  class method.
+
+14 Feb 2000
+
+- Fixed bug in bar width. Removed some roundings, and always add 1
+  to left boundary. Also, adapt r_margin on the fly to make sure bars
+  are always exactly the same width. This changes the look of graphs
+  slightly, but it looks so much better in general.
+- Fixed bug in drawing of vertical x labels with x_tick_number enabled
+- Cleaned up code in setup_coords in axestype.pm a bit
+
+12 Feb 2000
+
+- Removed ReadFile sub from GD::Graph.pm. I never got around to making
+  it part of the interface anyway. replaced by GD::Graph::Data.
+- Rewrote lots, and lots of code. General cleanup. Removal of direct
+  work with data array. Now only works with interface of GD::Graph::Data
+  object (hopefully)
+
+09 Feb 2000
+
+- Added GD::Graph::Data to distribution
+
 27 Jan 2000
 
 - Added patch from Hildebrand, which allows non-drawing of accents on

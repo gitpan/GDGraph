@@ -5,12 +5,14 @@
 #	Name:
 #		GD::Graph::mixed.pm
 #
-# $Id: mixed.pm,v 1.4 2000/01/07 13:44:42 mgjv Exp $
+# $Id: mixed.pm,v 1.8 2000/03/18 06:01:43 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::mixed;
  
+$GD::Graph::mixed::VERSION = '$Revision: 1.8 $' =~ /\s([\d.]+)/;
+
 use strict;
  
 use GD::Graph::axestype;
@@ -32,45 +34,53 @@ use Carp;
 	GD::Graph::points 
 );
 
-sub draw_data_set # GD::Image, \@data, $ds
+sub initialise
 {
-	my $s = shift;
-	my $d = shift;
-	my $ds = shift;
+	my $self = shift;
+	$self->SUPER::initialise();
+	$self->set(correct_width => 1);
+}
 
-	my $type = $s->{types}->[$ds-1] || $s->{default_type};
+sub draw_data_set
+{
+	my $self = shift;
+	my $ds   = $_[0];
+
+	my $rc;
+
+	my $type = $self->{types}->[$ds-1] || $self->{default_type};
 
 	# Try to execute the draw_data_set function in the package
 	# specified by type
-	eval '$s->GD::Graph::'.$type.'::draw_data_set($d, $ds)';
+	$rc = eval '$self->GD::Graph::'.$type.'::draw_data_set(@_)';
 
 	# If we fail, we try it in the package specified by the
 	# default_type, and warn the user
 	if ($@)
 	{
-		warn "Set $ds, unknown type $type, assuming $s->{default_type}\n";
+		carp "Set $ds, unknown type $type, assuming $self->{default_type}";
 
-		eval '$s->GD::Graph::'.
-			$s->{default_type}.'::draw_data_set($d, $ds)';
+		$rc = eval '$self->GD::Graph::'.
+			$self->{default_type}.'::draw_data_set(@_)';
 	}
 
 	# If even that fails, we bail out
-	croak "Set $ds: unknown default type $s->{default_type}\n" if $@;
+	croak "Set $ds: unknown default type $self->{default_type}" if $@;
+
+	return $rc;
 }
 
-sub draw_legend_marker # (GD::Image, data_set_number, x, y)
+sub draw_legend_marker
 {
-	my $s = shift;
-	my $ds = shift;
-	my $x = shift;
-	my $y = shift;
+	my $self = shift;
+	my $ds = $_[0];
 
-	my $type = $s->{types}->[$ds-1] || $s->{default_type};
+	my $type = $self->{types}->[$ds-1] || $self->{default_type};
 
-	eval '$s->GD::Graph::'.$type.'::draw_legend_marker($ds, $x, $y)';
+	eval '$self->GD::Graph::'.$type.'::draw_legend_marker(@_)';
 
-	eval '$s->GD::Graph::'.
-		$s->{default_type}.'::draw_legend_marker($ds, $x, $y)' if $@;
+	eval '$self->GD::Graph::'.
+		$self->{default_type}.'::draw_legend_marker(@_)' if $@;
 }
 
-1;
+"Just another true value";

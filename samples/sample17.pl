@@ -19,14 +19,14 @@ $my_graph->set(
 	y_max_value => 50,
 	y_tick_number => 10,
 	y_label_skip => 2,
-	overwrite => 2,
+	cumulate => 1,
 	dclrs => [ qw(white cyan cyan) ],
 	borderclrs => [ qw(white black black) ],
 	bar_spacing => 4
 );
 
-#$my_graph->set_legend(qw(offset increment more));
+$my_graph->set_legend(qw(offset increment more));
 $my_graph->set_legend(undef, 'increment', 'more');
-$my_graph->plot(\@data);
+$my_graph->plot(\@data) or die $my_graph->error;
 save_chart($my_graph, 'sample17');
 

@@ -8,11 +8,13 @@
 #	Description:
 #		Package of general utilities.
 #
-# $Id: utils.pm,v 1.2 1999/12/11 12:50:48 mgjv Exp $
+# $Id: utils.pm,v 1.5 2000/03/18 06:01:43 mgjv Exp $
 #
 #==========================================================================
  
 package GD::Graph::utils;
+
+$GD::Graph::utils::VERSION = '$Revision: 1.5 $' =~ /\s([\d.]+)/;
 
 use strict;
 
@@ -21,13 +23,8 @@ require Exporter;
 
 @GD::Graph::utils::ISA = qw( Exporter );
  
-@EXPORT_OK = qw( _max _min _round );
-%EXPORT_TAGS = ( all => [qw(_max _min _round)],);
-
-$GD::Graph::utils::prog_name    = 'GD::Graph::utils.pm';
-$GD::Graph::utils::prog_rcs_rev = '$Revision: 1.2 $';
-$GD::Graph::utils::prog_version = 
-	($GD::Graph::utils::prog_rcs_rev =~ /\s+(\d*\.\d*)/) ? $1 : "0.0";
+@EXPORT_OK = qw(_max _min _round);
+%EXPORT_TAGS = (all => [qw(_max _min _round)]);
 
 sub _max { 
 	my ($a, $b) = @_; 
@@ -45,14 +42,8 @@ sub _min {
 	( $a <= $b ) ? $a : $b; 
 }
 
-sub _round { 
-	my($n) = shift; 
-	sprintf("%.0f", $n);
-}
+sub _round { sprintf "%.0f", shift }
 
-sub version {
-	$GD::Graph::utils::prog_version;
-}
+sub version { $GD::Graph::utils::VERSION }
 
-$GD::Graph::utils::prog_name;
-
+"Just another true value";

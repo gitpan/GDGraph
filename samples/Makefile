@@ -16,8 +16,8 @@
 .SILENT:
 
 PERL = perl
-#OPTIONS = -I/home/mgjv/perl/GD1.19 -I. -I../lib -Tw
-OPTIONS = -I. -I../lib -Tw
+#OPTIONS = -I/home/mgjv/perl/GD1.19 -I. -I../blib/lib -Tw
+OPTIONS = -I. -I../blib/lib -Tw
 
 EXT := \
 	$(shell perl $(OPTIONS) -MGD::Graph -e 'print GD::Graph::export_format')
@@ -25,10 +25,10 @@ EXT := \
 SAMPLES :=  \
 		sample11 sample12 sample13 sample14 sample15 sample16 \
 		sample17 sample18 \
-		sample21 sample22 \
+		sample21 sample22 sample23 \
 		sample31 \
 		sample41 sample42\
-		sample51 sample52 sample53 sample54 sample55 \
+		sample51 sample52 sample53 sample54 sample55 sample56 \
 		sample61 sample62 \
 		sample71 \
 		sample91 sample92 sample93 sample94
@@ -55,5 +55,6 @@ clean:
 sample14.$(EXT): logo.$(EXT)
 sample42.$(EXT): sample42.dat
 sample54.$(EXT): sample54.dat
+sample56.$(EXT): sample54.dat
 sample53.$(EXT): rgb.txt
 
