@@ -1,7 +1,7 @@
 use GD::Graph::points;
 require 'save.pl';
 
-print STDERR "Processing sample 3-1\n";
+print STDERR "Processing sample31\n";
 
 @data = ( 
     ["1st","2nd","3rd","4th","5th","6th","7th", "8th", "9th"],
@@ -21,7 +21,7 @@ $my_graph->set(
 	legend_placement => 'RC',
 	long_ticks => 1,
 	marker_size => 6,
-	markers => [ 1, 7, 5 ],
+	markers => [ 9, 10, 1, 7, 5 ],
 
 	transparent => 0,
 );

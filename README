@@ -67,6 +67,11 @@ FIRST PNG PORT as Chart::PNGgraph
 Steve Bonds
 sbonds@agora.rdrop.com
 
+MOST IMPORTANT CHANGES FOR VERSION 1.34
+
+- Added GD::Graph::hbars, to create horizontal bar charts. Many thanks
+  to brian d foy for doing almost all of the actual work. :)
+
 MOST IMPORTANT CHANGES FOR VERSION 1.30
 
 - Added GD::Graph::Data as the preferred way of working with data sets.
@@ -164,7 +169,7 @@ GD::Graph in the AUTHOR section.
 COPYRIGHT
 
 GD::Graph
-Copyright (c) 1999 Martien Verbruggen. All rights reserved.
+Copyright (c) 1999-2002 Martien Verbruggen. All rights reserved.
 Chart::PNGgraph
 Copyright (c) 1999 Steve Bonds.  All rights reserved.
 GIFgraph
