@@ -1,3 +1,21 @@
+17 June 2003
+
+- Removed file BUGS from distribution. Too much work to keep up to
+  date. Use rt.cpan.org, or email.
+- Fixed skip() calls in tests to work with ancient versions of
+  Test.pm.
+- Made GD::Graph::Data::read() work with file handles under Perl
+  5.005.
+
+16 June 2003
+
+- Fixed when zero axis inclusion is done for bar and are charts.
+- Fixed code to reserve area for hbar charts last y axis label
+
+11 June 2003
+
+- Added no_axes option, changed sample56 to reflect this
+
 30 May 2003
 
 - Added version number for GD::Text PREREQ_PM

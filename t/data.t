@@ -1,4 +1,4 @@
-# $Id: data.t,v 1.13 2003/05/30 00:38:05 mgjv Exp $
+# $Id: data.t,v 1.17 2003/06/17 03:28:11 mgjv Exp $
 use Test;
 use strict;
 
@@ -99,7 +99,7 @@ ok(ref $rc, "GD::Graph::Data", "Couldn't read input data.tab input file");
 
 if (!defined $rc)
 {
-    skip 1 for 1..2;
+    skip(1, "data.tab not read") for 1..2;
 }
 else
 {
@@ -119,7 +119,7 @@ ok(ref $rc, "GD::Graph::Data", "Couldn't read input data.csv input file");
 
 if (!defined $rc)
 {
-    skip 1 for 1..2;
+    skip(1, "data.csv not read") for 1..2;
 }
 else
 {
@@ -137,11 +137,19 @@ $rc = $data->read(file => \*DATA, delimiter => qr/,/);
 # open file handle in read().
 ok(ref $rc, "GD::Graph::Data", "Couldn't read from DATA file handle");
 
-ok($data->num_sets(), 3);
-ok(scalar $data->num_points(), 2);
+if (!defined $rc)
+{
+    skip(1, "DATA not read") for 1..2;
+}
+else
+{
+    ok($data->num_sets(), 3);
+    ok(scalar $data->num_points(), 3);
+}
 
 __DATA__
 We will skip this line
 # And from here on, things should be normal for input files
 A,1,2,3
 B,1,2,3
+C,1,2,3

@@ -5,13 +5,13 @@
 #   Name:
 #       GD::Graph::Data.pm
 #
-# $Id: Data.pm,v 1.19 2003/05/29 06:56:20 mgjv Exp $
+# $Id: Data.pm,v 1.21 2003/06/17 03:28:11 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::Data;
 
-($GD::Graph::Data::VERSION) = '$Revision: 1.19 $' =~ /\s([\d.]+)/;
+($GD::Graph::Data::VERSION) = '$Revision: 1.21 $' =~ /\s([\d.]+)/;
 
 use strict;
 use GD::Graph::Error;
@@ -636,7 +636,6 @@ delimiter instead of a single tab.
 sub read
 {
     my $self = shift;
-    local(*DATA, $_);
 
     return $self->_set_error(ERR_ARGS_NO_HASH) if (@_ && @_ % 2);
     my %args = @_;
@@ -646,27 +645,32 @@ sub read
 
     my $delim = $args{delimiter} || "\t";
 
+    $self->reset();
+
     # The following will die if these modules are not present, as
     # documented.
     require Text::ParseWords;
 
-    $self->reset;
+    my $fh;
+    local *FH;
 
-    if (ref $args{file})
+    if (UNIVERSAL::isa($args{file}, "GLOB"))
     {
-	*DATA = $args{file};
+	$fh = $args{file};
     }
     else
     {
-	open(DATA, $args{file}) or 
+	# $fh = \do{ local *FH }; # Odd... This dumps core, sometimes in 5.005
+	$fh = \*FH; # XXX Need this for perl 5.005
+	open($fh, $args{file}) or 
 	    return $self->_set_error("open ($args{file}): $!");
     }
 
-    while (<DATA>)
+    while (my $line = <$fh>)
     {
-        chomp;
-        next if /^#/ && !$args{no_comment};
-        my @fields = Text::ParseWords::parse_line($delim, 1, $_);
+        chomp $line;
+        next if $line =~ /^#/ && !$args{no_comment};
+        my @fields = Text::ParseWords::parse_line($delim, 1, $line);
         next unless @fields;
         $self->add_point(@fields);
     }
