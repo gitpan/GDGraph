@@ -18,7 +18,7 @@
 #		GD::Graph::pie
 #		GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.26 2000/04/30 08:32:38 mgjv Exp $
+# $Id: Graph.pm,v 1.31 2000/05/06 23:16:38 mgjv Exp $
 #
 #==========================================================================
 
@@ -30,8 +30,8 @@
 
 package GD::Graph;
 
-$GD::Graph::prog_version = '$Revision: 1.26 $' =~ /\s([\d.]+)/;
-$GD::Graph::VERSION = '1.31';
+$GD::Graph::prog_version = '$Revision: 1.31 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.32';
 
 use strict;
 use GD;
@@ -85,6 +85,8 @@ my %Defaults = (
 	axislabelclr  => 'dblue',	# values on axes
 	legendclr	  => 'dblue',	# Text for the legend
 	textclr       => 'dblue',	# All text, apart from the following 2
+
+	valuesclr     => 'dblue',	# values printed above the points
 	
 	# data set colours
 	dclrs => [ qw(lred lgreen lblue lyellow lpurple cyan lorange)], 
@@ -200,6 +202,7 @@ sub set_text_clr # (colour name)
 		textclr       => $clr,
 		labelclr      => $clr,
 		axislabelclr  => $clr,
+		valuesclr     => $clr,
 	);
 }
 
@@ -248,6 +251,27 @@ sub check_data # \@data
 
 	$self->{_data}->num_sets > 0 && $self->{_data}->num_points > 0
 		or return $self->_set_error('No data sets or points');
+	
+	if ($self->{show_values})
+	{
+		# If this isn't a GD::Graph::Data compatible structure, then
+		# we'll just use the data structure.
+		#
+		# XXX We should probably check a few more things here, e.g.
+		# similarity between _data and show_values.
+		#
+		my $ref = ref($self->{show_values});
+		if (! $ref || ($ref ne 'GD::Graph::Data' && $ref ne 'ARRAY'))
+		{
+			$self->{show_values} = $self->{_data}
+		}
+		elsif ($ref eq 'ARRAY')
+		{
+			$self->{show_values} =
+				GD::Graph::Data->new($self->{show_values})
+				or return $self->_set_error(GD::Graph::Data->error);
+		}
+	}
 
 	return $self;
 }
@@ -275,6 +299,7 @@ sub init_graph
 	$self->{lci}  = $self->set_clr(_rgb($self->{labelclr}));
 	$self->{alci} = $self->set_clr(_rgb($self->{axislabelclr}));
 	$self->{acci} = $self->set_clr(_rgb($self->{accentclr}));
+	$self->{valuesci} = $self->set_clr(_rgb($self->{valuesclr}));
 	$self->{legendci} = $self->set_clr(_rgb($self->{legendclr}));
 	$self->{boxci} = $self->set_clr(_rgb($self->{boxclr})) 
 		if $self->{boxclr};
@@ -407,9 +432,18 @@ sub gd
 sub export_format
 {
 	my $proto = shift;
-	GD::Image->can('png') and return 'png';
-	GD::Image->can('gif') and return 'gif';
-	return;
+	my @f = grep { GD::Image->can($_) } qw(gif png jpeg xbm xpm gd gd2);
+	wantarray ? @f : $f[0];
+}
+
+# The following method is undocumented, and will not be supported as
+# part of the interface. There isn't really much reason to do so.
+sub import_format
+{
+	my $proto = shift;
+	# For now, exclude xpm, as it's buggy
+	my @f = grep { GD::Image->can("newFrom\u$_") } qw(gif png jpeg xbm gd gd2);
+	wantarray ? @f : $f[0];
 }
 
 sub can_do_ttf
@@ -504,7 +538,7 @@ I<GD::Graph> will complain and refuse to compile the graph.
 
   @data = ( 
     ["1st","2nd","3rd","4th","5th","6th","7th", "8th", "9th"],
-    [    1,    2,    5,    6,    3,  1.5,    1,     3,     4]
+    [    1,    2,    5,    6,    3,  1.5,    1,     3,     4],
     [ sort { $a <=> $b } (1, 2, 5, 6, 3, 1.5, 1, 3, 4) ]
   );
 
@@ -591,38 +625,38 @@ decide that you mean a method name there)
 
 =over 4
 
-=item GD::Graph::chart->new([width,height])
+=item GD::Graph::chart-E<gt>new([width,height])
 
 Create a new object $graph with optional width and heigth. 
 Default width = 400, default height = 300. I<chart> is either
 I<bars>, I<lines>, I<points>, I<linespoints>, I<area>, I<mixed> or
 I<pie>.
 
-=item $graph->set_text_clr(I<colour name>)
+=item $graph-E<gt>set_text_clr(I<colour name>)
 
 Set the colour of the text. This will set the colour of the titles,
 labels, and axis labels to I<colour name>. Also see the options
 I<textclr>, I<labelclr> and I<axislabelclr>.
 
-=item $graph->set_title_font(font specification)
+=item $graph-E<gt>set_title_font(font specification)
 
 Set the font that will be used for the title of the chart.
 See L<"FONTS">.
 
-=item $graph->plot(I<\@data>)
+=item $graph-E<gt>plot(I<\@data>)
 
 Plot the chart, and return the GD::Image object.
 
-=item $graph->set(attrib1 => value1, attrib2 => value2 ...)
+=item $graph-E<gt>set(attrib1 =E<gt> value1, attrib2 =E<gt> value2 ...)
 
 Set chart options. See OPTIONS section.
 
-=item $graph->get(attrib1, attrib2)
+=item $graph-E<gt>get(attrib1, attrib2)
 
 Returns a list of the values of the attributes. In scalar context
 returns the value of the first attribute only.
 
-=item $graph->gd()
+=item $graph-E<gt>gd()
 
 Get the GD::Image object that is going to be used to draw on. You can do
 this either before or after calling the plot method, to do your own
@@ -632,12 +666,15 @@ Note that if you draw on the GD::Image object before calling the plot
 method that you are responsible for making sure that the background
 colour is correct and for setting transparency.
 
-=item $graph->export_format()
+=item $graph-E<gt>export_format()
 
-Query the export format of the GD library in use. Returns 'gif', 'png'
-or undefined. Can be called as a class or object method
+Query the export format of the GD library in use.  In scalar context, it
+returns 'gif', 'png' or undefined, which is sufficient for most people's
+use. In a list context, it returns a list of all the formats that are
+supported by the current version of GD. It can be called as a class or
+object method
 
-=item $graph->can_do_ttf()
+=item $graph-E<gt>can_do_ttf()
 
 Returns true if the current GD library supports TrueType fonts, False
 otherwise. Can also be called as a class method or static method.
@@ -650,9 +687,9 @@ otherwise. Can also be called as a class method or static method.
 
 =over 4
 
-=item $graph->set_label_font(font specification)
+=item $graph-E<gt>set_label_font(font specification)
 
-=item $graph->set_value_font(font specification)
+=item $graph-E<gt>set_value_font(font specification)
 
 Set the font that will be used for the label of the pie or the 
 values on the pie.
@@ -665,19 +702,21 @@ See L<"FONTS">.
 
 =over 4
 
-=item $graph->set_x_label_font(font specification)
+=item $graph-E<gt>set_x_label_font(font specification)
 
-=item $graph->set_y_label_font(font specification)
+=item $graph-E<gt>set_y_label_font(font specification)
 
-=item $graph->set_x_axis_font(font specification)
+=item $graph-E<gt>set_x_axis_font(font specification)
 
-=item $graph->set_y_axis_font(font specification)
+=item $graph-E<gt>set_y_axis_font(font specification)
 
-Set the font for the x and y axis label, and for the x and y axis
-value labels.
+=item $graph-E<gt>set_values_font(font specification)
+
+Set the font for the x and y axis label, the x and y axis
+value labels, and for the values printed above the data points.
 See L<"FONTS">.
 
-=item $graph->get_hotspot($dataset, $point)
+=item $graph-E<gt>get_hotspot($dataset, $point)
 
 B<Experimental>:
 Return a coordinate specification for a point in a dataset. Returns a
@@ -754,11 +793,11 @@ Depth of a shadow, positive for right/down shadow, negative for left/up
 shadow, 0 for no shadow (default).
 Also see the C<shadowclr> and C<bar_spacing> options.
 
-=item labelclr, axislabelclr, legendclr, textclr
+=item labelclr, axislabelclr, legendclr, valuesclr, textclr
 
 Text Colours used for the chart: label (labels for the axes or pie),
 axis label (misnomer: values printed along the axes, or on a pie slice),
-legend text, and all other text.
+legend text, shown values text, and all other text.
 
 All colours should have a valid value as described in L<"COLOURS">.
 
@@ -766,7 +805,7 @@ All colours should have a valid value as described in L<"COLOURS">.
 
 This controls the colours for the bars, lines, markers, or pie slices.
 This should be a reference to an array of colour names as defined in
-L<GD::Graph::colour> (C<S<perldoc GD::Graph::colour>> for the names available).
+L<GD::Graph::colour> (S<C<perldoc GD::Graph::colour>> for the names available).
 
     $graph->set( dclrs => [ qw(green pink blue cyan) ] );
 
@@ -1024,6 +1063,56 @@ Default: 1 for bar, calculated at runtime for mixed charts, 0 for others.
 
 =back
 
+=head2 Plotting data point values with the data point
+
+Sometimes you will want to plot the value of a data point or bar above
+the data point for clarity. GD::Graph allows you to control this in a
+generic manner, or even down to the single point.
+
+=over 4
+
+=item show_values
+
+Set this to 1 to display the value of each data point above the point or
+bar itself. No effort is being made to ensure that there is enough space
+for the text.
+
+Set this to a GD::Graph::Data object, or an array reference of the same
+shape, with the same dimensions as your data object that you pass in to
+the plot method. The reason for this option is that it allows you to
+make a copy of your data set, and selectively set points to C<undef> to
+disable plotting of them.
+
+  my $data = GD::Graph::Data->new( 
+  	[ [ 'A', 'B', 'C' ], [ 1, 2, 3 ], [ 11, 12, 13 ] ]);
+  my $values = $data->copy;
+  $values->set_y(1, 1, undef);
+  $values->set_y(2, 0, undef);
+
+  $graph->set(show_values => $values);
+  $graph->plot($data);
+
+Default: 0.
+
+=item values_vertical
+
+If set to a true value, the values will be printed vertically, instead
+of horizontally. This can be handy if the values are long numbers.
+Default: 0.
+
+=item values_space
+
+Space to insert between the data point and the value to print.
+Default: 4.
+
+=item values_format
+
+How to format the values for display. See y_number_format for more
+information.
+Default: undef.
+
+=back
+
 =head2 Options for graphs with a numerical X axis
 
 First of all: GD::Graph does B<not> support numerical x axis the way it
@@ -1157,14 +1246,14 @@ B<Methods>
 
 =over 4
 
-=item $graph->set_legend(I<@legend_keys>);
+=item $graph-E<gt>set_legend(I<@legend_keys>);
 
 Sets the keys for the legend. The elements of @legend_keys correspond
 to the data sets as provided to I<plot()>.
 
 If a key is I<undef> or an empty string, the legend entry will be skipped.
 
-=item $graph->set_legend_font(I<font name>);
+=item $graph-E<gt>set_legend_font(I<font name>);
 
 Sets the font for the legend text (see L<"FONTS">).
 Default: GD::gdTinyFont.
@@ -1246,7 +1335,7 @@ shortened to clr. The main reason for this was that I didn't want to
 support two spellings for the same word ('colour' and 'color')
 
 Wherever a colour is required, a colour name should be used from the
-package L<GD::Graph::colour>. C<S<perldoc GD::Graph::colour>> should give
+package L<GD::Graph::colour>. S<C<perldoc GD::Graph::colour>> should give
 you the documentation for that module, containing all valid colour
 names. I will probably change this to read the systems rgb.txt file if 
 it is available.
@@ -1324,7 +1413,7 @@ create a new GD::Graph object.
 
 =head1 AUTHOR
 
-Martien Verbruggen <mgjv@comdyn.com.au>
+Martien Verbruggen E<lt>mgjv@comdyn.com.auE<gt>
 
 =head2 Copyright
 
@@ -1361,4 +1450,11 @@ And some people whose real name I don't know, and whose email address
 I'd rather not publicise without their consent.
 
 =cut
+
+=head1 SEE ALSO
+
+L<GD::Graph::FAQ>, 
+L<GD::Graph::Data>, 
+L<GD::Graph::Error>,
+L<GD::Graph::colour>
 
