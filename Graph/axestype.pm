@@ -5,13 +5,13 @@
 #	Name:
 #		GD::Graph::axestype.pm
 #
-# $Id: axestype.pm,v 1.21 2000/04/15 08:59:36 mgjv Exp $
+# $Id: axestype.pm,v 1.23 2000/04/30 08:32:38 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::axestype;
 
-$GD::Graph::axestype::VERSION = '$Revision: 1.21 $' =~ /\s([\d.]+)/;
+$GD::Graph::axestype::VERSION = '$Revision: 1.23 $' =~ /\s([\d.]+)/;
 
 use strict;
  
@@ -80,7 +80,8 @@ my %Defaults = (
 	# always drawn with a nice integer number of pixels?
 	#
 	# The GD::Graph::bars::initialise sub will switch this on.
-	correct_width		=> 0,
+	# Do not set this to anything else than undef!
+	correct_width		=> undef,
 
 	# XXX The following two need to get better defaults. Maybe computed.
 	# Draw the zero axis in the graph in case there are negative values
@@ -145,7 +146,7 @@ my %Defaults = (
 	# Set the scale of the line types
 	line_type_scale	=> 8,
 
-	# Which line typess to use
+	# Which line types to use
 	line_types		=> [1],
 
 	# XXX bars
@@ -306,6 +307,26 @@ sub set_legend_font # (font name)
 	$self->_set_font('gdta_legend', @_);
 }
 
+sub get_hotspot
+{
+	my $self = shift;
+	my $ds = shift;		# Which data set
+	my $np = shift;		# Which data point?
+
+	if (defined $np && defined $ds)
+	{
+		return @{$self->{_hotspots}->[$ds]->[$np]};
+	}
+	elsif (defined $ds)
+	{
+		return @{$self->{_hotspots}->[$ds]};
+	}
+	else
+	{
+		return @{$self->{_hotspots}};
+	}
+}
+
 # PRIVATE
 
 # inherit check_data from GD::Graph
@@ -344,7 +365,7 @@ sub _setup_boundaries
 			($self->{y2_label} ? $self->{ylfh} + $self->{text_space} : 0)
 		);
 
-	if ($self->{correct_width} && !$self->{x_tick_number})
+	if ($self->correct_width && !$self->{x_tick_number})
 	{
 		# Make sure we have a nice integer number of pixels
 		$self->{r_margin} += ($self->{right} - $self->{left}) %
@@ -362,6 +383,14 @@ sub _setup_boundaries
 
 	return $self;
 }
+
+# This method should return 1 if the width of the graph needs to be
+# corrected to whole integers, and 0 if not. The default behaviour is to
+# not correct the width. Individual classes should override this by
+# setting the $self->{correct_width} attribute in their initialise
+# method. Only in complex cases (see mixed.pm) should this method be
+# overridden
+sub correct_width { $_[0]->{correct_width} }
 
 sub setup_coords
 {
@@ -590,6 +619,13 @@ sub draw_axes
 
 	my ($l, $r, $b, $t) = 
 		( $self->{left}, $self->{right}, $self->{bottom}, $self->{top} );
+	
+	# Sanity check for zero_axis and zero_axis_only
+	unless ($self->{y_min}[1] < 0 && $self->{y_max}[1] > 0)
+	{
+		$self->{zero_axis} = 0;
+		$self->{zero_axis_only} = 0;
+	}
 
 	if ( $self->{box_axis} ) 
 	{
