@@ -32,7 +32,7 @@ package GD::Graph;
 
 use strict;
 
-use GD '1.18';
+use GD;
 use GD::Text::Align;
 use Carp;
 
@@ -40,7 +40,7 @@ $GD::Graph::prog_rcs_rev = q{$Revision: 1.4 $};
 $GD::Graph::prog_version = 
 	($GD::Graph::prog_rcs_rev =~ /\s+(\d*\.\d*)/) ? $1 : "0.0";
 
-$GD::Graph::VERSION = '1.20';
+$GD::Graph::VERSION = '1.21';
 
 # Some tools and utils
 use GD::Graph::colour qw(:colours);
