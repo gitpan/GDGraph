@@ -5,13 +5,13 @@
 #	Name:
 #		GD::Graph::lines.pm
 #
-# $Id: lines.pm,v 1.11 2000/04/30 08:32:38 mgjv Exp $
+# $Id: lines.pm,v 1.13 2000/10/07 04:06:22 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::lines;
 
-$GD::Graph::lines::VERSION = '$Revision: 1.11 $' =~ /\s([\d.]+)/;
+$GD::Graph::lines::VERSION = '$Revision: 1.13 $' =~ /\s([\d.]+)/;
 
 use strict;
  
@@ -50,7 +50,12 @@ sub draw_data_set
 
 	for (my $i = 0; $i < @values; $i++)
 	{
-		next unless defined $values[$i];
+		if (!defined $values[$i])
+		{
+			($xb, $yb) = () if $self->{skip_undef};
+			next;
+		}
+
 		my ($xe, $ye);
 
 		if (defined($self->{x_min_value}) && defined($self->{x_max_value}))
@@ -65,7 +70,8 @@ sub draw_data_set
 
 		if (defined $xb)
 		{
-			$self->draw_line($xb, $yb, $xe, $ye, $type, $dsci);
+			$self->draw_line($xb, $yb, $xe, $ye, $type, $dsci)
+				if defined $dsci;
 			$self->{_hotspots}->[$ds]->[$i] = 
 				['line', $xb, $yb, $xe, $ye, $self->{line_width}];
 		}
@@ -158,6 +164,7 @@ sub draw_legend_marker # (data_set_number, x, y)
 	my ($n, $x, $y) = @_;
 
 	my $ci = $self->set_clr($self->pick_data_clr($n));
+	return unless defined $ci;
 	my $type = $self->pick_line_type($n);
 
 	$y += int($self->{lg_el_height}/2);

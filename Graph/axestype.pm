@@ -5,13 +5,13 @@
 #	Name:
 #		GD::Graph::axestype.pm
 #
-# $Id: axestype.pm,v 1.26 2000/05/06 23:23:41 mgjv Exp $
+# $Id: axestype.pm,v 1.29 2000/10/07 05:52:41 mgjv Exp $
 #
 #==========================================================================
 
 package GD::Graph::axestype;
 
-$GD::Graph::axestype::VERSION = '$Revision: 1.26 $' =~ /\s([\d.]+)/;
+$GD::Graph::axestype::VERSION = '$Revision: 1.29 $' =~ /\s([\d.]+)/;
 
 use strict;
  
@@ -155,8 +155,12 @@ my %Defaults = (
 	# Which line types to use
 	line_types		=> [1],
 
+	# Skip undefined values, and don't draw them at all
+	skip_undef		=> 0,
+
 	# XXX bars
 	# Spacing between the bars
+	bar_width		=> undef,
 	bar_spacing 	=> 0,
 
 	# cycle through colours per data point, not set
@@ -911,6 +915,18 @@ sub draw_data
 {
 	my $self = shift;
 
+	# Calculate bar_spacing from bar_width
+	if ($self->{bar_width})
+	{
+		my $chart_width = $self->{right} - $self->{left};
+		my $n_bars = $self->{_data}->num_points;
+		my $n_sets = $self->{_data}->num_sets;
+		my $bar_space = $chart_width/($n_bars + 1) /
+			($self->{overwrite} ? 1 : $n_sets);
+		$self->{bar_spacing} = $bar_space - $self->{bar_width};
+		$self->{bar_spacing} = 0 if $self->{bar_spacing} < 0;
+	}
+
 	# XXX is this comment still pertinent?
 	# The drawing of 'cumulated' sets needs to be done in reverse,
 	# for area and bar charts. This is mainly because of backward
@@ -1391,6 +1407,7 @@ sub draw_legend_marker # data_set_number, x, y
 	my $g = $s->{graph};
 
 	my $ci = $s->set_clr($s->pick_data_clr($n));
+	return unless defined $ci;
 
 	$y += int($s->{lg_el_height}/2 - $s->{legend_marker_height}/2);
 

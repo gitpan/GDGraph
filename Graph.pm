@@ -18,7 +18,7 @@
 #		GD::Graph::pie
 #		GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.31 2000/05/06 23:16:38 mgjv Exp $
+# $Id: Graph.pm,v 1.34 2000/10/07 05:52:41 mgjv Exp $
 #
 #==========================================================================
 
@@ -30,8 +30,8 @@
 
 package GD::Graph;
 
-$GD::Graph::prog_version = '$Revision: 1.31 $' =~ /\s([\d.]+)/;
-$GD::Graph::VERSION = '1.32';
+$GD::Graph::prog_version = '$Revision: 1.34 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.33';
 
 use strict;
 use GD;
@@ -380,6 +380,7 @@ sub put_logo
 sub set_clr # GD::Image, r, g, b
 {
 	my $self = shift; 
+	return unless @_;
 	my $i;
 
 	# Check if this colour already exists on the canvas
@@ -390,6 +391,9 @@ sub set_clr # GD::Image, r, g, b
 
 		# XXX if this fails, we should use colorClosest.
 		# All of this could potentially be done by using colorResolve
+		# The problem is that colorResolve doesn't return an error
+		# condition (-1) if it can't allocate a color. Instead it always
+		# returns 0.
 	} 
 	return $i;
 }
@@ -402,6 +406,7 @@ sub set_clr # GD::Image, r, g, b
 sub set_clr_uniq # GD::Image, r, g, b
 {
 	my $self = shift; 
+	return unless @_;
 	$self->{graph}->colorAllocate(@_); 
 }
 
@@ -810,6 +815,11 @@ L<GD::Graph::colour> (S<C<perldoc GD::Graph::colour>> for the names available).
     $graph->set( dclrs => [ qw(green pink blue cyan) ] );
 
 The first (fifth, ninth) data set will be green, the next pink, etc.
+
+A colour can be C<undef>, in which case the data set will not be drawn.
+This can be useful for cumulative bar sets where you want certain data
+series (often the first one) not to show up, which can be used to
+emulate error bars (see examples 1-7 and 6-3 in the distribution).
 Default: [ qw(lred lgreen lblue lyellow lpurple cyan lorange) ] 
 
 =item borderclrs
@@ -817,16 +827,7 @@ Default: [ qw(lred lgreen lblue lyellow lpurple cyan lorange) ]
 This controls the colours of the borders of the bars data sets. Like
 dclrs, it is a reference to an array of colour names as defined in
 L<GD::Graph::colour>.
-
-Setting the border colours to the background colour of the graph allows
-bars to "float" above the X-axis. For example (assuming your background
-is white):
-
-    $graph->set( dclrs => [ qw(white cyan cyan) ] );
-    $graph->set( borderclrs => [ qw(white black black) ] );
-
-Creates a cyan bar with a black line across the middle, ideal for showing
-ranges with the average value.
+Setting a border colour to C<undef> means the border will not be drawn.
 
 =item cycle_clrs
 
@@ -1154,11 +1155,21 @@ See y_label_skip
 
 =over 4
 
+=item bar_width
+
+The width of a bar in pixels. Also see C<bar_spacing>.  Use C<bar_width>
+If you want to have fixed-width bars, no matter how wide the chart gets.
+Default: as wide as possible, within the constraints of the chart size
+and C<bar_spacing> setting.
+
 =item bar_spacing
 
 Number of pixels to leave open between bars. This works well in most
 cases, but on some platforms, a value of 1 will be rounded off to 0.
-Default: 0
+Use C<bar_spacing> to get a fixed amount of space between bars, with
+variable bar widths, depending on the width of the chart.  Note that if
+C<bar_width> is also set, this setting will be ignored, and
+automatically calculated.  Default: 0
 
 =back
 
@@ -1186,6 +1197,29 @@ Controls the length of the dashes in the line types. default: 6.
 
 The width of the line used in I<lines> and I<linespoints> graphs, in pixels.
 Default: 1.
+
+=item skip_undef
+
+For all other axes graph types, the default behaviour is (by their
+nature) to not draw a point when the Y value is C<undef>. For line
+charts the point gets skipped as well, but the line is drawn between the
+points n-1 to n+1 directly. If C<skip_undef> has a true value, there
+will be a gap in the chart where a Y value is undefined.
+
+Note that a line will not be drawn unless there are I<at least two>
+consecutive data points exist that have a defined value. The following
+data set will only plot a very short line towards the end if
+C<skip_undef> is set:
+
+  @data = (
+    [ qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct ) ],
+    [ 1, undef, 2, undef, 3, undef, 4, undef, 5, 6 ]
+  );
+
+This option is useful when you have a consecutive gap in your data, or
+with linespoints charts. If you have data where you have intermittent
+gaps, be careful when you use this.
+Default value: 0
 
 =back
 
@@ -1413,7 +1447,7 @@ create a new GD::Graph object.
 
 =head1 AUTHOR
 
-Martien Verbruggen E<lt>mgjv@comdyn.com.auE<gt>
+Martien Verbruggen E<lt>mgjv@tradingpost.com.auE<gt>
 
 =head2 Copyright
 

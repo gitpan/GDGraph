@@ -5,7 +5,7 @@ The latest release is available from CPAN: http://www.cpan.org/.
 
 INSTALLATION
 
-needed to install (also see TESTED PLATFORMS):
+Requirements:
 
 	perl 5.005
 	GD >= 1.19 (recommended >= 1.23)
@@ -60,7 +60,7 @@ of the pre-PNG days (1.19). All of this happens on Linux.
 AUTHOR
 
 Martien Verbruggen
-mgjv@comdyn.com.au
+mgjv@tradingpost.com.au
 
 FIRST PNG PORT as Chart::PNGgraph
 
