@@ -48,12 +48,12 @@ $my_graph->set(
 	transparent => 0,
 );
 
-$my_graph->set_title_font('../cetus.ttf', 18);
-$my_graph->set_x_label_font('../cetus.ttf', 10);
-$my_graph->set_y_label_font('../cetus.ttf', 10);
-$my_graph->set_x_axis_font('../cetus.ttf', 8);
-$my_graph->set_y_axis_font('../cetus.ttf', 8);
-$my_graph->set_legend_font('../cetus.ttf', 9);
+$my_graph->set_title_font('../Dustismo_Sans.ttf', 18);
+$my_graph->set_x_label_font('../Dustismo_Sans.ttf', 10);
+$my_graph->set_y_label_font('../Dustismo_Sans.ttf', 10);
+$my_graph->set_x_axis_font('../Dustismo_Sans.ttf', 8);
+$my_graph->set_y_axis_font('../Dustismo_Sans.ttf', 8);
+$my_graph->set_legend_font('../Dustismo_Sans.ttf', 9);
 
 $my_graph->set_legend( qw( one two three four five six ) );
 
@@ -66,7 +66,7 @@ if ($my_graph->can_do_ttf)
 
     $gdta = GD::Text::Align->new($gd,
 	text => 'GD::Graph',
-	font => '../cetus.ttf',
+	font => '../Dustismo_Sans.ttf',
 	ptsize => 72,
 	colour => $pink,
 	valign => 'center',
@@ -80,7 +80,7 @@ $my_graph->plot(\@data);
 
 # Use a hotspot to draw some extra text on the chart
 # XXX This doesn't work nicely. Need a nicer way to get the maximum.
-if (0) {
+if (1) {
     my $gd = $my_graph->gd;
     my $red = $gd->colorResolve(255,0,0);
     my @l = $my_graph->get_hotspot(1, 3);
@@ -89,7 +89,7 @@ if (0) {
 
     $gdta = GD::Text::Align->new($gd,
 	text => 'maximum',
-	font => '../cetus.ttf',
+	font => '../Dustismo_Sans.ttf',
 	ptsize => 12,
 	colour => $red,
 	valign => 'bottom',
