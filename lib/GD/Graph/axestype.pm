@@ -5,7 +5,7 @@
 #	Name:
 #		GD::Graph::axestype.pm
 #
-# $Id: axestype.pm,v 1.4 1999/12/29 12:14:40 mgjv Exp $
+# $Id: axestype.pm,v 1.7 2000/01/02 23:22:49 mgjv Exp $
 #
 #==========================================================================
 
@@ -794,14 +794,14 @@ sub set_max_min
 	$s->{x_min}    = $s->{x_min_value}  if defined $s->{x_min_value};
 	$s->{x_max}    = $s->{x_max_value}  if defined $s->{x_max_value};
 
-	if ($s->{two_axes} and 
-		defined $subclass and 
-		($subclass eq 'bars' or $subclass eq 'area'))
+	if ($s->{two_axes})
 	{
 		# If we have two axes, we need to make sure that the zero is at
 		# the same spot.
+		# And we need to change the number of ticks on the axes
 
 		#print "beg: $_ $s->{y_min}[$_] - $s->{y_max}[$_]\n" for (1..2);
+		#print "tck: $s->{y_tick_number}\n";
 
 		my $l_range = $s->{y_max}[1] - $s->{y_min}[1];
 		my $r_range = $s->{y_max}[2] - $s->{y_min}[2];
@@ -814,22 +814,20 @@ sub set_max_min
 		if ($l_top > $r_top)
 		{
 			$s->{y_max}[2] = $l_top * $r_range;
+			$s->{y_min}[1] = $r_bot * $l_range;
+			$s->{y_tick_number} *= 1 + abs $r_bot - $l_bot;
 		}
 		else
 		{
 			$s->{y_max}[1] = $r_top * $l_range;
+			$s->{y_min}[2] = $l_bot * $r_range;
+			$s->{y_tick_number} *= 1 + abs $r_top - $l_top;
 		}
 
-		if (abs($l_bot) > abs($r_bot))
-		{
-			$s->{y_min}[2] = $l_bot * $r_range;
-		}
-		else
-		{
-			$s->{y_min}[1] = $r_bot * $l_range;
-		}
+		#print "$l_top - $l_bot - $r_top - $r_bot\n";
 
 		#print "end: $_ $s->{y_min}[$_] - $s->{y_max}[$_]\n" for (1..2);
+		#print "tck: $s->{y_tick_number}\n";
 	}
 
 	# Check to see if we have sensible values
