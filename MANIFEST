@@ -18,8 +18,10 @@ Graph/utils.pm
 Graph/Data.pm
 Graph/Error.pm
 Graph/FAQ.pod
-20thcent.ttf
-20thcent_Read_Me.txt
+t/colour.t
+t/data.t
+t/error.t
+t/use.t
 cetus.ttf
 samples/sample11.pl
 samples/sample12.pl

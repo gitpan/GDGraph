@@ -19,7 +19,7 @@
 #       GD::Graph::pie
 #       GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.40 2002/06/21 08:20:46 mgjv Exp $
+# $Id: Graph.pm,v 1.42 2003/02/06 00:17:35 mgjv Exp $
 #
 #==========================================================================
 
@@ -31,8 +31,8 @@
 
 package GD::Graph;
 
-$GD::Graph::prog_version = '$Revision: 1.40 $' =~ /\s([\d.]+)/;
-$GD::Graph::VERSION = '1.35';
+$GD::Graph::prog_version = '$Revision: 1.42 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.36';
 
 use strict;
 use GD;
@@ -118,7 +118,7 @@ sub new  # ( width, height ) optional;
     if (@_) 
     {
         # If there are any parameters, they should be the size
-        return $self->set_error(
+        return GD::Graph->_set_error(
             "Usage: GD::Graph::<type>::new(width, height)") unless @_ >= 2;
 
         $self->{width} = shift;
@@ -455,7 +455,13 @@ sub gd
 sub export_format
 {
     my $proto = shift;
-    my @f = grep { GD::Image->can($_) } qw(gif png jpeg xbm xpm gd gd2);
+    my @f = grep { GD::Image->can($_) && 
+                   do { 
+		    my $g = GD::Image->new(5,5);
+		    $g->colorAllocate(0,0,0);
+		    $g->$_() 
+		   };
+	    } qw(gif png jpeg xbm xpm gd gd2);
     wantarray ? @f : $f[0];
 }
 
@@ -569,10 +575,10 @@ If you don't have a value for a point in a certain dataset, you can
 use B<undef>, and the point will be skipped.
 
 Create a new I<GD::Graph> object by calling the I<new> method on the
-graph type you want to create (I<chart> is I<bars>, I<lines>, I<points>,
-I<linespoints>, I<mixed> or I<pie>).
+graph type you want to create (I<chart> is I<bars>, I<hbars>,
+I<lines>, I<points>, I<linespoints>, I<mixed> or I<pie>).
 
-  $graph = GD::Graph::chart->new(400, 300);
+  my $graph = GD::Graph::chart->new(400, 300);
 
 Set the graph options. 
 
@@ -583,11 +589,11 @@ Set the graph options.
       y_max_value       => 8,
       y_tick_number     => 8,
       y_label_skip      => 2 
-  );
+  ) or die $my_graph->error;
 
 and plot the graph.
 
-  my $gd = $my_graph->plot(\@data);
+  my $gd = $my_graph->plot(\@data) or die $my_graph->error;
 
 Then do whatever your current version of GD allows you to do to save the
 file. For versions of GD older than 1.19, you'd do something like:
@@ -630,7 +636,7 @@ or you can use the convenience method C<export_format>:
   print IMG $my_graph->plot(\@data)->$format();
   close IMG;
 
-or for CGI scripts:
+or for CGI programs:
 
   use CGI qw(:standard);
   #...
@@ -641,6 +647,9 @@ or for CGI scripts:
 
 (the parentheses after $format are necessary, to help the compiler
 decide that you mean a method name there)
+
+See under L<"SEE ALSO"> for references to other documentation,
+especially the FAQ.
 
 =head1 METHODS
 
@@ -1465,6 +1474,50 @@ turn contain references to arrays for each point.
   [
     ['line', xs, ys, xe, ye, w], ['line', xs, ys, xe, ye, w], ...
   ],...
+
+=head1 ERROR HANDLING
+
+GD::Graph objects inherit from the GD::Graph::Error class (not the
+other way around), so they behave in the same manner. The main feature
+of that behaviour is that you have the error() method available to get
+some information about what went wrong. The GD::Graph methods all
+return undef if something went wrong, so you should be able to write
+safe programs like this:
+
+  my $graph = GD::Graph->new()	    or die GD::Graph->error;
+  $graph->set( %attributes )	    or die $graph->error;
+  $graph->plot($gdg_data)	    or die $graph->error;
+
+More advanced usage is possible, and there are some caveats with this
+error handling, which are all explained in L<GD::Graph::Error>.
+
+Unfortunately, it is almost impossible to gracefully recover from an
+error in GD::Graph, so you really should get rid of the object, and
+recreate it from scratch if you want to recover. For example, to
+adjust the correct_width attribute if you get the error "Horizontal
+size too small" or "Vertical size too small" (in the case of hbar),
+you could do something like:
+
+  sub plot_graph
+  {
+      my $data    = shift;
+      my %attribs = @_;
+      my $graph   = GD::Graph::bars->new()
+  	                        or die GD::Graph->error;
+      $graph->set(%attribs)     or die $graph->error;
+      $graph->plot($data)       or die $graph->error;
+  }
+  
+  my $gd;
+  eval { $gd = plot_graph(\@data, %attribs) };
+  if ($@)
+  {
+      die $@ unless $@ =~ /size too small/;
+      $gd = plot_graph(\@data, %attribs, correct_width => 0);
+  }
+
+Of course, you could also adjust the width this way, and you can check
+for other errors.
 
 =head1 NOTES
 
