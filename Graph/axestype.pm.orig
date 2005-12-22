@@ -5,13 +5,13 @@
 #   Name:
 #       GD::Graph::axestype.pm
 #
-# $Id: axestype.pm,v 1.44.2.6 2005/12/19 06:09:21 ben Exp $
+# $Id: axestype.pm,v 1.44.2.5 2005/12/19 04:42:23 ben Exp $
 #
 #==========================================================================
 
 package GD::Graph::axestype;
 
-($GD::Graph::axestype::VERSION) = '$Revision: 1.44.2.6 $' =~ /\s([\d.]+)/;
+($GD::Graph::axestype::VERSION) = '$Revision: 1.44.2.5 $' =~ /\s([\d.]+)/;
 
 use strict;
  
@@ -1139,27 +1139,19 @@ sub draw_x_ticks_h
             ($i - $self->{x_tick_offset}) % ($self->{x_label_skip}) and 
             $i != $self->{_data}->num_points - 1;
 
-        my $text = $self->{_data}->get_x($i);
-        if (defined $text)
-        {
-            $self->{gdta_x_axis}->set_text($text);
+        $self->{gdta_x_axis}->set_text($self->{_data}->get_x($i));
 
-            my $angle = 0;
-            if ($self->{x_labels_vertical})
-            {
-                $self->{gdta_x_axis}->set_align('bottom', 'center');
-                $angle = PI/2;
-            }
-            else
-            {
-                $self->{gdta_x_axis}->set_align('center', 'right');
-            }
-            $self->{gdta_x_axis}->draw($x - $self->{axis_space}, $y, $angle);
-        } 
-        elsif ($INC{'warnings.pm'} && warnings::enabled('uninitialized') || $^W ) 
+        my $angle = 0;
+        if ($self->{x_labels_vertical})
         {
-            carp("Uninitialized label value at index $i");
+            $self->{gdta_x_axis}->set_align('bottom', 'center');
+            $angle = PI/2;
         }
+        else
+        {
+            $self->{gdta_x_axis}->set_align('center', 'right');
+        }
+        $self->{gdta_x_axis}->draw($x - $self->{axis_space}, $y, $angle);
     }
 
     return $self;
@@ -1200,27 +1192,19 @@ sub draw_x_ticks_v
             ($i - $self->{x_tick_offset}) % ($self->{x_label_skip}) and 
             $i != $self->{_data}->num_points - 1;
 
-        my $text = $self->{_data}->get_x($i);
-        if (defined $text)
-        {
-            $self->{gdta_x_axis}->set_text($text);
+        $self->{gdta_x_axis}->set_text($self->{_data}->get_x($i));
 
-            my $angle = 0;
-            if ($self->{x_labels_vertical})
-            {
-                $self->{gdta_x_axis}->set_align('center', 'right');
-                $angle = PI/2;
-            }
-            else
-            {
-                $self->{gdta_x_axis}->set_align('top', 'center');
-            }
-            $self->{gdta_x_axis}->draw($x, $y + $self->{axis_space}, $angle);
-        } 
-        elsif ($INC{'warnings.pm'} && warnings::enabled('uninitialized') || $^W ) 
+        my $angle = 0;
+        if ($self->{x_labels_vertical})
         {
-            carp("Uninitialized label value at index $i");
+            $self->{gdta_x_axis}->set_align('center', 'right');
+            $angle = PI/2;
         }
+        else
+        {
+            $self->{gdta_x_axis}->set_align('top', 'center');
+        }
+        $self->{gdta_x_axis}->draw($x, $y + $self->{axis_space}, $angle);
     }
 
     return $self;
