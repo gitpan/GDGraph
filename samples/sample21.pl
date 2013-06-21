@@ -10,7 +10,7 @@ my @data = (
 
 my @names = qw/sample21/;
 
-for my $graph (GD::Graph::area->new(400,300,1))
+for my $graph (GD::Graph::area->new)
 {
     my $name = shift @names;
     print STDERR "Processing $name\n";
@@ -23,9 +23,7 @@ for my $graph (GD::Graph::area->new(400,300,1))
 	#y_tick_number => 8,
 	#y_label_skip => 2,
 	#accent_treshold => 41,
-	transparent => 1,
-	alpha=>50,
-	aa=>1
+	transparent => 0,
     );
 
     $graph->set_legend( 'one', 'two' );

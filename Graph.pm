@@ -19,7 +19,7 @@
 #       GD::Graph::pie
 #       GD::Graph::mixed
 #
-# $Id: Graph.pm,v 1.58 2007/06/05 04:28:31 ben Exp $
+# $Id: Graph.pm,v 1.55 2007/04/26 04:12:47 ben Exp $
 #
 #==========================================================================
 
@@ -31,8 +31,8 @@
 
 package GD::Graph;
 
-($GD::Graph::prog_version) = '$Revision: 1.58 $' =~ /\s([\d.]+)/;
-$GD::Graph::VERSION = '1.44_01';
+($GD::Graph::prog_version) = '$Revision: 1.55 $' =~ /\s([\d.]+)/;
+$GD::Graph::VERSION = '1.45';
 
 use strict;
 use GD;
@@ -109,7 +109,7 @@ sub _has_default {
 #
 # PUBLIC methods, documented in pod.
 #
-sub new  # ( width, height, truecolor ) optional;
+sub new  # ( width, height ) optional;
 {
     my $type = shift;
     my $self = {};
@@ -119,12 +119,10 @@ sub new  # ( width, height, truecolor ) optional;
     {
         # If there are any parameters, they should be the size
         return GD::Graph->_set_error(
-            "Usage: GD::Graph::<type>::new(width, height, truecolor)") unless @_ >= 2;
+            "Usage: GD::Graph::<type>::new(width, height)") unless @_ >= 2;
 
         $self->{width} = shift;
         $self->{height} = shift;
-        $self->{truecolor} = shift;
-        $self->{truecolor} = 0 unless defined($self->{truecolor});
     } 
     else 
     {
@@ -285,15 +283,10 @@ sub open_graph
 {
     my $self = shift;
     return $self->{graph} if exists $self->{graph};
-    if (2.0 <= $GD::VERSION){
-        if ($self->{truecolor}){
-            $self->{graph} = GD::Image->newTrueColor($self->{width}, $self->{height});
-        } else {
-            $self->{graph} = GD::Image->newPalette($self->{width}, $self->{height});
-        }
-    } else {
-        $self->{graph} = GD::Image->new($self->{width}, $self->{height});
-    }
+    $self->{graph} = 2.0 <= $GD::VERSION 
+        ?   GD::Image->newPalette($self->{width}, $self->{height})
+        :   GD::Image->new($self->{width}, $self->{height});
+
 }
 
 # Initialise the graph output canvas, setting colours (and getting back
@@ -305,11 +298,6 @@ sub init_graph
     my $self = shift;
 
     $self->{bgci} = $self->set_clr(_rgb($self->{bgclr}));
-    if ($self->{truecolor}){
-        #fake up the background, since it doesn't work with the first allocated color,
-        #like in palette based images
-        $self->{graph}->filledRectangle(0,0,$self->{width},$self->{height},$self->{bgci});
-    }
     $self->{fgci} = $self->set_clr(_rgb($self->{fgclr}));
     $self->{tci}  = $self->set_clr(_rgb($self->{textclr}));
     $self->{lci}  = $self->set_clr(_rgb($self->{labelclr}));
@@ -435,16 +423,9 @@ sub put_logo
 sub set_clr # GD::Image, r, g, b
 {
     my $self = shift; 
-    return unless @_ > 1;
-    my $gd = $self->gd;
+    return unless @_;
+    my $gd = $self->{graph};
 
-    if (3 < @_ ) {
-        if ( $gd->can('colorResolveAlpha') ) {
-            return $gd->colorResolveAlpha(@_);
-        } else {
-            pop @_; # discard alpha information
-        }
-    }
     # All of this could potentially be done by using colorResolve
     # The problem is that colorResolve doesn't return an error
     # condition (-1) if it can't allocate a color. Instead it always
@@ -456,6 +437,13 @@ sub set_clr # GD::Image, r, g, b
     $i = $gd->colorAllocate(@_) if $i < 0;
     # if this fails, we should use colorClosest.
     $i = $gd->colorClosest(@_)  if $i < 0;
+
+    # TODO Deal with antialiasing here?
+    if (0 && $self->can("setAntiAliased"))
+    {
+        $self->setAntiAliased($i);
+        eval "$i = gdAntiAliased";
+    }
 
     return $i;
 }
@@ -485,16 +473,8 @@ sub _rm_tmp_clr
 sub set_clr_uniq # GD::Image, r, g, b
 {
     my $self = shift; 
-    return unless @_ > 1;
-    my $gd = $self->gd;
-    if (3 < @_ ) {
-        if ( $gd->can('colorResolveAlpha') ) {
-            return $gd->colorResolveAlpha(@_);
-        } else {
-            pop @_; # discard alpha information
-        }
-    }
-    $gd->colorAllocate(@_); 
+    return unless @_;
+    $self->{graph}->colorAllocate(@_); 
 }
 
 # Return an array of rgb values for a colour number
@@ -625,6 +605,35 @@ Create a pie chart.
 
 =back
 
+=head1 DISTRIBUTION STATUS
+
+Distribution has no releases since 2007. It has new maintainer starting
+of 1.45 and my plan is to keep modules backwards compatible as much as
+possible, fix bugs with test cases, apply patches and release new versions
+to the CPAN.
+
+I got repository from Martien without Benjamin's work, Benjamin couldn't
+find his repository, so everything else is imported from CPAN and BackPAN.
+Now it's all on github L<https://github.com/ruz/GDGraph>. May be at some
+point Benjamin will find his VCS backup and we can restore full history.
+
+Release 1.44_01 (development release) was released in 2007 by Benjamin,
+but never made into production version. This dev version contains very
+nice changes (truecolor, anti-aliasing and alpha support), but due to
+nature of how GD and GD::Graph works authors had to add third optional
+argument (truecolor) to all constructors in GD::Graph modules. I think
+that this should be and can be adjusted to recieve named arguments in
+constructor and still be backwards compatible. If you were using that
+dev release and want to fast forward inclusion of this work into production
+release then contact ruz@cpan.org
+
+Martien also has changes in his repository that were never published
+to CPAN. These are smaller and well isolated, so I can merge them faster.
+
+My goal at this moment is to merge existing versions together, get rid
+of CVS reminders, do some repo cleanup, review existing tickets on
+rt.cpan.org. Join if you want to help.
+
 =head1 EXAMPLES
 
 See the samples directory in the distribution, and read the Makefile
@@ -729,31 +738,12 @@ especially the FAQ.
 
 =over 4
 
-=item GD::Graph::chart-E<gt>new([width,height,truecolor])
+=item GD::Graph::chart-E<gt>new([width,height])
 
-Create a new object $graph with optional width, height and truecolor. 
-Default width = 400, default height = 300, default truecolor = 0. 
-I<chart> is either I<bars>, I<lines>, I<points>, I<linespoints>, 
-I<area>, I<mixed> or I<pie>.
-
-If you pass a 3rd argument of 1 to the new method, you get a truecolor graph,
-instead of palette-based.  This opens up some additional options for the
-3d graphs:
-
-=over 4
-
-=item alpha
-
-Sets the alpha channel component of the data point colours.  This only has
-an effect on things coloured by dclrs.  0 is opaque (default),
-becoming more transparent up to 127 (completely transparent).
-
-=item aa
-
-1 or 0 (default).  If this is set to one, the data points will be
-anti-aliased.  This will smooth the lines/arcs used to make the graph.
-
-=back
+Create a new object $graph with optional width and heigth. 
+Default width = 400, default height = 300. I<chart> is either
+I<bars>, I<lines>, I<points>, I<linespoints>, I<area>, I<mixed> or
+I<pie>.
 
 =item $graph-E<gt>set_text_clr(I<colour name>)
 

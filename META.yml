@@ -1,12 +1,20 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         GDGraph
-version:      1.44_01
-version_from: Graph.pm
-installdirs:  site
-requires:
-    GD:                            1.18
-    GD::Text:                      0.80
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.21
+---
+abstract: 'Produces charts with GD'
+author:
+  - 'Martien Verbruggen <mgjv@tradingpost.com.au>'
+build_requires: {}
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.131560'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: GDGraph
+no_index:
+  directory:
+    - t
+    - inc
+resources:
+  bugtracker: http://rt.cpan.org/Public/Dist/Display.html?Name=GDGraph
+  repository: git://git@github.com:ruz/GDGraph.git
+version: 1.45

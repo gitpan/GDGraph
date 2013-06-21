@@ -1,0 +1,35 @@
+{
+   "abstract" : "Produces charts with GD",
+   "author" : [
+      "Martien Verbruggen <mgjv@tradingpost.com.au>"
+   ],
+   "dynamic_config" : 1,
+   "generated_by" : "ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.131560",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "GDGraph",
+   "no_index" : {
+      "directory" : [
+         "t",
+         "inc"
+      ]
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "mailto" : "bug-GDGraph@rt.cpan.org",
+         "web" : "http://rt.cpan.org/Public/Dist/Display.html?Name=GDGraph"
+      },
+      "repository" : {
+         "type" : "git",
+         "url" : "git://git@github.com:ruz/GDGraph.git",
+         "web" : "https://github.com/ruz/GDGraph"
+      }
+   },
+   "version" : "1.45"
+}

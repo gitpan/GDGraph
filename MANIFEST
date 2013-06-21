@@ -80,3 +80,4 @@ t/images/logo_ping_noext
 t/images/logo_xbm_noext
 t/images/logo_xpm_noext
 t/use.t
+META.json                                Module JSON meta-data (added by MakeMaker)
